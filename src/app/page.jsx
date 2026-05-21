@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-export default function Home() {
+export default function Login() {
   return (
     <main className="w-full h-screen overflow-hidden lg:grid lg:grid-cols-2">
       
