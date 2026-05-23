@@ -15,7 +15,7 @@ export function Header({
     return (
         <header
             className={cn(
-                "flex h-16 w-full items-center justify-between border-b border-border bg-card px-6 shadow-xs select-none",
+                "flex h-16 w-full items-center justify-between bg-background py-10 px-10 select-none",
                 className
             )}
             {...props}

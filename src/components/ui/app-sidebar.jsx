@@ -56,10 +56,10 @@ export default function AppSidebar() {
   const pathname = usePathname();
 
   return (
-    <Sidebar collapsible="none" className="border-r border-sidebar-border bg-sidebar"> 
-      <SidebarHeader className="flex flex-row items-center gap-3 px-4 py-6">
-        <div className="flex flex-col justify-center items-center bg-blue-normal rounded-b-4xl">
-          <img src="/logo_brand.png" alt="logo brand" />
+    <Sidebar collapsible="none" className="border-r border-sidebar-border bg-white"> 
+      <SidebarHeader className="flex flex-row items-center justify-center gap-3 bg-blue-normal px-3 py-5 rounded-br-[32px]">
+        <div className="flex flex-col justify-center items-center w-full">
+          <img src="/logo_white.png" alt="logo brand" className="h-12 object-contain w-full" />
         </div>
       </SidebarHeader>
 
@@ -92,24 +92,6 @@ export default function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-sidebar-border/50 p-4">
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              asChild
-              tooltip="Profil Pemilik"
-            >
-              <Link href="/pemilik/profil">
-                <User className="shrink-0" />
-                <div className="flex flex-col text-left leading-none group-data-[collapsible=icon]:hidden">
-                  <span className="text-xs font-semibold text-sidebar-foreground">Pemilik Kos</span>
-                  <span className="text-[10px] text-muted-foreground mt-0.5">owner@koshub.com</span>
-                </div>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarFooter>
     </Sidebar>
   );
 }
