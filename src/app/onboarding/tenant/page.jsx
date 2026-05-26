@@ -10,18 +10,18 @@ export default function TenantOnboarding(){
             caption="Isi data dirimu dibawah ini."
             children={
                 <>
-                <div className="grid grid-cols gap-6 w-full text-left">
+                <div className="grid grid-cols gap-6 w-[150%] h-fit text-left">
                     <Field orientation="vertical">
-                        <FieldLabel htmlFor="firstName">Nama Lengkap</FieldLabel>
+                        <FieldLabel htmlFor="nama_lengkap">Nama Lengkap</FieldLabel>
                         <FieldContent>
-                            <Input type="text" id="firstName" placeholder="Masukkan nama lengkap Anda" />
+                            <Input type="text" id="nama_lengkap" placeholder="Masukkan nama lengkap Anda" />
                         </FieldContent>
                     </Field>
 
                     <Field orientation="vertical">
-                        <FieldLabel htmlFor="phone">No. Telepon</FieldLabel>
+                        <FieldLabel htmlFor="no_telp">No. Telepon</FieldLabel>
                         <FieldContent>
-                            <Input type="text" id="phone" placeholder="Masukkan nomor telepon aktif" />
+                            <Input type="text" id="no_telp" placeholder="Masukkan nomor telepon aktif" />
                         </FieldContent>
                     </Field>
                 </div>

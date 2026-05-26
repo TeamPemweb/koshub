@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import Link from "next/link";
 import { Field, FieldLabel, FieldContent } from "@/components/ui/field";
 
 export default function SignUp() {
@@ -63,9 +64,9 @@ export default function SignUp() {
                     <div className="flex justify-center text-sm">
                         <p className="text-muted-foreground">
                             Sudah punya akun?{" "}
-                            <a href="#" className="font-semibold text-primary hover:underline">
+                            <Link href="/" className="font-semibold text-primary hover:underline">
                                 Login di sini
-                            </a>
+                            </Link>
                         </p>
                     </div>
                 </div>

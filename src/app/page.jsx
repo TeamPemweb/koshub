@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import Link from "next/link";
 
 export default function Login() {
   return (
@@ -32,9 +33,9 @@ export default function Login() {
           <div className="flex justify-center text-sm">
             <p className="text-muted-foreground">
               Belum punya akun?{" "}
-              <a href="#" className="font-semibold text-primary hover:underline">
+              <Link href="/auth" className="font-semibold text-primary hover:underline">
                 Daftar di sini
-              </a>
+              </Link>
             </p>
           </div>
         </div>
