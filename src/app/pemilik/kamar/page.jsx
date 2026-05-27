@@ -190,13 +190,13 @@ export default function KelolaKamar() {
   ];
 
   return (
-    <main className="flex flex-col px-10 py-2">
+    <main className="flex flex-col px-10">
       <div className="flex flex-row gap-2 items-center">
         <Link href="/pemilik/kamar/create">
           <Button className="cursor-pointer" variant="default" size="lg">+ Tambah Kamar</Button>
         </Link>
         <Link href="/pemilik/kamar/kelola">
-          <Button variant="outline" size="lg" className="cursor-pointer">Kelola Tipe Kamar</Button>
+          <Button variant="outline" size="lg">Kelola Tipe Kamar</Button>
         </Link>
 
         <div className="w-0.5 h-6 bg-gray-400"></div>
