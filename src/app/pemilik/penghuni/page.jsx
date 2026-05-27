@@ -17,35 +17,83 @@ const getTipeKamarStyle = (tipe) => {
     Elite: "bg-pink-100 text-pink-700 border-pink-200",
     Penthouse: "bg-cyan-100 text-cyan-700 border-cyan-200",
   };
-  return styles[tipe] || "bg-gray-100 text-gray-700 border-gray-200";
+  // Fallback styling using substring match if exact match fails
+  const matchedKey = Object.keys(styles).find(key => tipe?.toLowerCase().includes(key.toLowerCase()));
+  return matchedKey ? styles[matchedKey] : "bg-gray-100 text-gray-700 border-gray-200";
 };
+
+// Helper function to calculate stay duration
+function calculateStayDuration(startDateString) {
+  if (!startDateString) return "-";
+  const start = new Date(startDateString);
+  const now = new Date();
+  
+  if (isNaN(start.getTime())) return "-";
+  
+  let years = now.getFullYear() - start.getFullYear();
+  let months = now.getMonth() - start.getMonth();
+  let days = now.getDate() - start.getDate();
+  
+  if (days < 0) {
+    months--;
+    const prevMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+    days += prevMonth.getDate();
+  }
+  
+  if (months < 0) {
+    years--;
+    months += 12;
+  }
+  
+  let result = [];
+  if (years > 0) result.push(`${years} tahun`);
+  if (months > 0) result.push(`${months} bulan`);
+  if (days > 0) result.push(`${days} hari`);
+  
+  if (result.length === 0) return "Baru saja masuk";
+  return result.join(", ");
+}
 
 export default function KelolaPenghuni() {
   const [searchQuery, setSearchQuery] = useState("");
   const [dataPenghuni, setDataPenghuni] = useState([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedPenghuni, setSelectedPenghuni] = useState(null);
   
   const debouncedSearch = useDebounce(searchQuery, 500);
 
   const fetchDataPenghuni = async (query = "") => {
     try {
-      const dummyData = [
-        { id: 1, nama: "Yoga", telepon: "08123456789", email: "yoga@example.com", kamar: "1A", tipe: "Reguler", lama: "2 bulan, 3 hari" },
-        { id: 2, nama: "Bagas", telepon: "08123456789", email: "bagas@example.com", kamar: "1B", tipe: "Premium", lama: "2 tahun, 3 bulan, 11 hari" },
-        { id: 3, nama: "Iqbal", telepon: "08123456789", email: "iqbal@example.com", kamar: "1C", tipe: "Premium", lama: "2 tahun, 3 bulan, 12 hari" },
-        { id: 4, nama: "Nailah", telepon: "08123456789", email: "nailah@example.com", kamar: "1C", tipe: "Deluxe", lama: "2 tahun, 3 bulan, 16 hari" },
-        { id: 5, nama: "Raka", telepon: "08123456789", email: "raka@example.com", kamar: "1D", tipe: "Elite", lama: "2 tahun, 3 bulan, 13 hari" },
-        { id: 6, nama: "Prima", telepon: "08123456789", email: "prima@example.com", kamar: "2A", tipe: "Penthouse", lama: "2 tahun, 3 bulan, 15 hari" },
-      ];
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
+      const res = await fetch(`${apiUrl}/owner/residents`, {
+        credentials: "include"
+      });
+
+      if (!res.ok) {
+        console.error("Gagal mengambil data penghuni");
+        return;
+      }
+
+      const backendData = await res.json();
+
+      const mappedData = backendData.map(resident => ({
+        id: resident.kamar_id, 
+        nama: resident.nama_penghuni,
+        telepon: resident.nomor_telepon || "-",
+        kamar: resident.nomor_kamar,
+        tipe: resident.nama_tipe,
+        lama: calculateStayDuration(resident.tanggal_masuk)
+      }));
 
       if (query) {
         const lowerQuery = query.toLowerCase();
-        const filteredData = dummyData.filter((penghuni) =>
+        const filteredData = mappedData.filter((penghuni) =>
           penghuni.nama.toLowerCase().includes(lowerQuery) ||
-          penghuni.email.toLowerCase().includes(lowerQuery)
+          penghuni.kamar.toLowerCase().includes(lowerQuery)
         );
         setDataPenghuni(filteredData);
       } else {
-        setDataPenghuni(dummyData);
+        setDataPenghuni(mappedData);
       }
     } catch (error) {
       console.error(error);
@@ -56,17 +104,25 @@ export default function KelolaPenghuni() {
     fetchDataPenghuni(debouncedSearch);
   }, [debouncedSearch]);
 
-  const handleAkhiriSewa = (penghuni) => {
-    console.log("Akhiri sewa untuk:", penghuni.nama);
+  const handleAkhiriSewaClick = (penghuni) => {
+    setSelectedPenghuni(penghuni);
+    setIsModalOpen(true);
+  };
+
+  const handleConfirmAkhiriSewa = () => {
+    // Placeholder untuk endpoint akhiri sewa nantinya
+    alert(`Mensimulasikan pengakhiran sewa untuk ${selectedPenghuni?.nama}. Endpoint belum tersedia.`);
+    setIsModalOpen(false);
+    setSelectedPenghuni(null);
   };
 
   const columns = [
     {
       header: "Nama Penghuni",
       render: (row) => (
-        <Link href={`/penghuni/${row.id}`} className="underline text-gray-600 hover:text-gray-900 transition-colors">
+        <span className="font-medium text-gray-900">
           {row.nama}
-        </Link>
+        </span>
       ),
     },
     {
@@ -97,7 +153,7 @@ export default function KelolaPenghuni() {
             <Pencil className="w-4 h-4" />
           </button>
           <button
-            onClick={() => handleAkhiriSewa(row)}
+            onClick={() => handleAkhiriSewaClick(row)}
             className="px-2.5 py-1 text-xs font-semibold text-red-600 bg-red-100 border border-red-200 rounded-md hover:bg-red-200 transition-colors"
           >
             Akhiri Sewa
@@ -113,7 +169,7 @@ export default function KelolaPenghuni() {
         <Field orientation="horizontal" className="flex flex-row gap-4 w-full">
           <Input 
             type="search" 
-            placeholder="Cari nama penghuni..."
+            placeholder="Cari nama penghuni atau kamar..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="flex-1 max-w-full bg-white"
@@ -127,6 +183,42 @@ export default function KelolaPenghuni() {
       <div className="bg-white rounded-md min-h-screen">
         <ReusableTable columns={columns} data={dataPenghuni} />
       </div>
+
+      {/* Modal Konfirmasi Akhiri Sewa */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div 
+            className="w-full max-w-[480px] bg-white rounded-xl shadow-lg p-8 transform transition-all"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="text-xl font-bold text-[#1a1a1a] mb-2">
+              Akhiri Sewa {selectedPenghuni?.nama}?
+            </h2>
+            
+            <p className="text-[#64748b] text-base mb-8">
+              Tindakan ini akan mengeluarkan penghuni dari kamar {selectedPenghuni?.kamar} dan kamar tersebut akan kembali berstatus Kosong.
+            </p>
+            
+            <div className="flex items-center justify-end gap-3">
+              <button
+                onClick={() => {
+                  setIsModalOpen(false);
+                  setSelectedPenghuni(null);
+                }}
+                className="px-6 py-2.5 text-sm font-medium text-[#1a1a1a] bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Batal
+              </button>
+              <button
+                onClick={handleConfirmAkhiriSewa}
+                className="px-6 py-2.5 text-sm font-medium text-white bg-[#ef4444] rounded-lg hover:bg-[#dc2626] transition-colors"
+              >
+                Akhiri Sewa
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
