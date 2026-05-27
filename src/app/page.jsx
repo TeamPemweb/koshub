@@ -37,11 +37,24 @@ export default function Login() {
         return;
       }
 
-      // 2. Beri tahu NextAuth untuk login (NextAuth akan nge-fetch /auth/profile 
-      // di server-side pakai cookie yang baru saja di-set, lalu mengembalikan session)
+      // 2. Ambil profil user dari backend (karena browser sudah punya cookie-nya)
+      let role = null;
+      try {
+        const profileRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/profile`, {
+            credentials: "include"
+        });
+        if (profileRes.ok) {
+            const profileData = await profileRes.json();
+            role = profileData.role || null;
+        }
+      } catch (e) {
+        console.error("Gagal get profile:", e);
+      }
+
+      // 3. Beri tahu NextAuth untuk login dan simpan state role
       const result = await signIn("credentials", {
         email,
-        password,
+        role: role || "null", // NextAuth credentials hanya menerima string
         redirect: false,
       });
 

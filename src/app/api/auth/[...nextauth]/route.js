@@ -7,63 +7,17 @@ const handler = NextAuth({
             name: "credentials",
             credentials: {
                 email: { label: "Email", type: "email" },
-                password: { label: "Password", type: "password" },
+                role: { label: "Role", type: "text" },
             },
             async authorize(credentials) {
-                try {
-                    const res = await fetch(
-                        `${process.env.NEXT_PUBLIC_API_URL}/auth/login`,
-                        {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({
-                                email: credentials.email,
-                                password: credentials.password,
-                            }),
-                        }
-                    );
-
-                    const data = await res.json();
-
-                    if (!res.ok) {
-                        throw new Error(data.message || "Login gagal");
-                    }
-
-                    let role = null;
-                    let profileComplete = false;
-
-                    const setCookieHeader = res.headers.get("set-cookie");
-
-                    try {
-                        const profileRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/profile`, {
-                            headers: {
-                                ...(setCookieHeader ? { Cookie: setCookieHeader } : {}),
-                            }
-                        });
-
-                        if (profileRes.ok) {
-                            const profileData = await profileRes.json();
-                            if (profileData && profileData.role) {
-                                role = profileData.role;
-                                if (profileData.nama) {
-                                    profileComplete = true;
-                                }
-                            }
-                        }
-                    } catch (e) {
-                        console.error("Gagal get profile saat login:", e);
-                    }
-
-                    // Hanya return frontend state untuk NextAuth session (tanpa access token)
-                    return {
-                        id: credentials.email,
-                        email: credentials.email,
-                        role: role,
-                        profileComplete: profileComplete,
-                    };
-                } catch (error) {
-                    throw new Error(error.message || "Terjadi kesalahan saat login");
-                }
+                // Login API hit dilakukan di frontend (page.jsx) 
+                // agar browser bisa menyimpan cookie dengan sempurna.
+                // NextAuth hanya dipakai untuk menyimpan state role.
+                return {
+                    id: credentials.email,
+                    email: credentials.email,
+                    role: credentials.role === "null" ? null : credentials.role,
+                };
             },
         }),
     ],

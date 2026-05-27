@@ -24,14 +24,9 @@ export async function proxy(request) {
     // Halaman onboarding — boleh akses selama belum selesai setup
     // ─────────────────────────────────────────────────
     if (pathname.startsWith("/onboarding")) {
-        if (token.role && token.profileComplete) {
-            // Sudah komplit → masuk ke dashboard
+        if (token.role) {
+            // Sudah punya role → masuk ke dashboard
             return NextResponse.redirect(new URL(`/${token.role}`, request.url));
-        }
-        
-        // Punya role, tapi belum komplit profilnya → arahkan ke form profil sesuai role
-        if (token.role && !token.profileComplete && pathname === "/onboarding") {
-            return NextResponse.redirect(new URL(`/onboarding/${token.role}`, request.url));
         }
 
         return NextResponse.next();
@@ -41,16 +36,16 @@ export async function proxy(request) {
     // Sudah login → halaman publik (login/signup) → redirect ke dashboard
     // ─────────────────────────────────────────────────
     if (pathname === "/" || pathname === "/auth") {
-        if (token.role && token.profileComplete) {
+        if (token.role) {
             return NextResponse.redirect(new URL(`/${token.role}`, request.url));
         }
         return NextResponse.redirect(new URL("/onboarding", request.url));
     }
 
     // ─────────────────────────────────────────────────
-    // Akses dashboard — butuh role & profileComplete
+    // Akses dashboard — butuh role
     // ─────────────────────────────────────────────────
-    if (!token.role || !token.profileComplete) {
+    if (!token.role) {
         return NextResponse.redirect(new URL("/onboarding", request.url));
     }
 
