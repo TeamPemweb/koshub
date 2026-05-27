@@ -18,42 +18,56 @@ import {
   Users,
   CreditCard,
   MessageSquareWarning,
-  Building2,
-  User,
+  Home,
+  FileText,
+  Megaphone
 } from "lucide-react";
 import Link from "next/link";
+import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 
-const menuItems = [
-  {
-    title: "Home",
-    url: "/pemilik",
-    icon: LayoutDashboard,
-  },
-  {
-    title: "Kamar",
-    url: "/pemilik/kamar",
-    icon: BedDouble,
-  },
-  {
-    title: "Penghuni",
-    url: "/pemilik/penghuni",
-    icon: Users,
-  },
-  {
-    title: "Billing",
-    url: "/pemilik/billing",
-    icon: CreditCard,
-  },
-  {
-    title: "Keluhan",
-    url: "/pemilik/keluhan",
-    icon: MessageSquareWarning,
-  },
+const pemilikItems = [
+  { title: "Home", url: "/pemilik", icon: LayoutDashboard },
+  { title: "Kamar", url: "/pemilik/kamar", icon: BedDouble },
+  { title: "Penghuni", url: "/pemilik/penghuni", icon: Users },
+  { title: "Billing", url: "/pemilik/billing", icon: CreditCard },
+  { title: "Keluhan", url: "/pemilik/keluhan", icon: MessageSquareWarning },
+];
+
+const penghuniItems = [
+  { title: "Home", url: "/penghuni", icon: Home },
+  { title: "Billing", url: "/penghuni/billing", icon: FileText },
+  { title: "Keluhan", url: "/penghuni/keluhan", icon: Megaphone },
 ];
 
 export default function AppSidebar() {
   const pathname = usePathname();
+  const isPenghuni = pathname.startsWith("/penghuni");
+  
+  const [hasRoom, setHasRoom] = useState(true);
+
+  useEffect(() => {
+    if (isPenghuni) {
+      const checkRoom = async () => {
+        try {
+          const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
+          const res = await fetch(`${apiUrl}/resident/my-room`, { credentials: "include" });
+          if (!res.ok) {
+            setHasRoom(false);
+          } else {
+            const data = await res.json();
+            if (!data || Object.keys(data).length === 0) setHasRoom(false);
+            else setHasRoom(true);
+          }
+        } catch {
+          setHasRoom(false);
+        }
+      };
+      checkRoom();
+    }
+  }, [isPenghuni]);
+
+  const activeItems = isPenghuni ? penghuniItems : pemilikItems;
 
   return (
     <Sidebar collapsible="none" className="border-r border-sidebar-border bg-white"> 
@@ -70,16 +84,19 @@ export default function AppSidebar() {
           </SidebarGroupLabel>
           <SidebarGroupContent className="mt-2">
             <SidebarMenu>
-              {menuItems.map((item) => {
+              {activeItems.map((item) => {
                 const isActive = pathname === item.url;
+                const isDisabled = isPenghuni && !hasRoom && item.title !== "Home";
+                
                 return (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton
                       asChild
                       isActive={isActive}
                       tooltip={item.title}
+                      className={isDisabled ? "pointer-events-none opacity-50" : ""}
                     >
-                      <Link href={item.url}>
+                      <Link href={isDisabled ? "#" : item.url}>
                         <item.icon className="shrink-0" />
                         <span>{item.title}</span>
                       </Link>

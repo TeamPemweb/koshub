@@ -54,24 +54,37 @@ export default function KelolaKamar() {
 
   const fetchDataKamar = async (query = "") => {
     try {
-      const dummyData = [
-        { no: "1A", tipe: "Reguler", status: "Terisi", penghuni: "Yoga", kode: "1A-REHDB3" },
-        { no: "1B", tipe: "Premium", status: "Terisi", penghuni: "Bagas", kode: "1A-REHDB3" },
-        { no: "1C", tipe: "Premium", status: "Terisi", penghuni: "Iqbal", kode: "1A-REHDB3" },
-        { no: "1C", tipe: "Deluxe", status: "Terisi", penghuni: "Nailah", kode: "1A-REHDB3" },
-        { no: "1D", tipe: "Elite", status: "Terisi", penghuni: "Raka", kode: "1A-REHDB3" },
-        { no: "2A", tipe: "Penthouse", status: "Kosong", penghuni: "-", kode: "1A-REHDB3" },
-      ];
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
+      const res = await fetch(`${apiUrl}/owner/rooms`, {
+        credentials: "include"
+      });
+      
+      if (!res.ok) {
+        console.error("Gagal mengambil data kamar");
+        return;
+      }
+
+      const backendData = await res.json();
+      
+      const mappedData = backendData.map(room => ({
+        id: room.ID,
+        no: room.NomorKamar,
+        tipe: room.TipeKamar?.NamaTipe || "-",
+        status: room.Status === "kosong" ? "Kosong" : "Terisi",
+        penghuni: room.PenghuniID ? "Ada Penghuni" : "-", // Bisa disesuaikan jika API mereturn nama penghuni
+        kode: room.KodeKamar
+      }));
 
       if (query) {
         const lowerQuery = query.toLowerCase();
-        const filteredData = dummyData.filter((kamar) =>
+        const filteredData = mappedData.filter((kamar) =>
           kamar.no.toLowerCase().includes(lowerQuery) ||
-          kamar.penghuni.toLowerCase().includes(lowerQuery)
+          kamar.penghuni.toLowerCase().includes(lowerQuery) ||
+          kamar.kode.toLowerCase().includes(lowerQuery)
         );
         setDataKamar(filteredData);
       } else {
-        setDataKamar(dummyData);
+        setDataKamar(mappedData);
       }
     } catch (error) {
       console.error(error);
