@@ -55,25 +55,44 @@ export default function KelolaKamar() {
   const fetchDataKamar = async (query = "") => {
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
-      const res = await fetch(`${apiUrl}/owner/rooms`, {
-        credentials: "include"
-      });
       
-      if (!res.ok) {
+      // Fetch both rooms and residents simultaneously
+      const [resRooms, resResidents] = await Promise.all([
+        fetch(`${apiUrl}/owner/rooms`, { credentials: "include" }),
+        fetch(`${apiUrl}/owner/residents`, { credentials: "include" })
+      ]);
+      
+      if (!resRooms.ok) {
         console.error("Gagal mengambil data kamar");
         return;
       }
 
-      const backendData = await res.json();
+      const backendData = await resRooms.json();
       
-      const mappedData = backendData.map(room => ({
-        id: room.ID,
-        no: room.NomorKamar,
-        tipe: room.TipeKamar?.NamaTipe || "-",
-        status: room.Status === "kosong" ? "Kosong" : "Terisi",
-        penghuni: room.PenghuniID ? "Ada Penghuni" : "-", // Bisa disesuaikan jika API mereturn nama penghuni
-        kode: room.KodeKamar
-      }));
+      // Attempt to parse residents data, fallback to empty array if fails
+      let residentsData = [];
+      if (resResidents.ok) {
+        try {
+          residentsData = await resResidents.json();
+        } catch (e) {
+          console.warn("Format data residents tidak valid", e);
+        }
+      }
+      
+      const mappedData = backendData.map(room => {
+        // Find resident for this specific room
+        const resident = residentsData.find(r => r.kamar_id === room.ID);
+        const tenantName = resident ? resident.nama_penghuni : null;
+        
+        return {
+          id: room.ID,
+          no: room.NomorKamar,
+          tipe: room.TipeKamar?.NamaTipe || room.tipe_kamar?.nama_tipe || "-",
+          status: room.Status === "kosong" || room.status === "kosong" ? "Kosong" : "Terisi",
+          penghuni: tenantName ? tenantName : (room.PenghuniID || room.penghuni_id ? "Ada Penghuni" : "-"),
+          kode: room.KodeKamar || room.kode_kamar
+        };
+      });
 
       if (query) {
         const lowerQuery = query.toLowerCase();
@@ -103,12 +122,26 @@ export default function KelolaKamar() {
   const handleConfirmDelete = async () => {
     if (!selectedRoom) return;
     try {
-      const updatedData = dataKamar.filter((kamar) => kamar.no !== selectedRoom.no);
-      setDataKamar(updatedData);
-      setIsDeleteModalOpen(false);
-      setSelectedRoom(null);
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
+      const res = await fetch(`${apiUrl}/owner/rooms/${selectedRoom.id}`, {
+        method: "DELETE",
+        credentials: "include"
+      });
+
+      if (res.ok) {
+        // Refetch after deletion
+        fetchDataKamar(debouncedSearch);
+        setIsDeleteModalOpen(false);
+        setSelectedRoom(null);
+      } else {
+        const errorData = await res.text();
+        console.log("Gagal menghapus kamar:", errorData);
+        // Menutup modal agar tidak macet
+        setIsDeleteModalOpen(false);
+        setSelectedRoom(null);
+      }
     } catch (error) {
-      console.error(error);
+      console.log("Error:", error);
     }
   };
 
@@ -145,9 +178,9 @@ export default function KelolaKamar() {
       header: "Aksi",
       render: (row) => (
         <div className="flex items-center gap-3">
-          <button className="text-black hover:text-gray-700 transition-colors">
+          <Link href={`/pemilik/kamar/edit/${row.id}`} className="text-black hover:text-gray-700 transition-colors">
             <Pencil className="w-4 h-4" />
-          </button>
+          </Link>
           <button
             onClick={() => handleDeleteClick(row)}
             className="text-[#ef4444] hover:text-[#dc2626] transition-colors"

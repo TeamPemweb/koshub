@@ -111,12 +111,6 @@ export default function PenghuniDashboard() {
 
   return (
     <main className="flex flex-col px-10 py-6 w-full font-sans text-[#1a1a1a] min-h-full">
-      <div className="mb-10">
-        <h1 className="text-3xl font-bold text-[#435663]">
-          Selamat Datang, {profileData?.nama ? profileData.nama.split(" ")[0] : "Penghuni"}
-        </h1>
-      </div>
-
       {isLoadingRoom ? (
         <div className="flex-1 flex items-center justify-center">
           <p className="text-gray-500">Memuat data kamar...</p>
@@ -170,14 +164,12 @@ export default function PenghuniDashboard() {
           </div>
         </>
       ) : (
-        // STATE: BELUM ADA KAMAR (EMPTY STATE)
         <div className="flex-1 flex flex-col items-center justify-center pb-20">
           <img 
-            src="/empty_room.svg" 
+            src="/404.png" 
             alt="Ilustrasi belum ada kamar" 
             className="w-64 h-auto object-contain mb-6 opacity-80"
             onError={(e) => {
-              // Fallback jika file gambar belum tersedia
               e.target.style.display = 'none';
             }}
           />
