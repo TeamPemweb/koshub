@@ -58,41 +58,52 @@ export default function KeluhanKos() {
   const fetchDataKeluhan = async (query = "") => {
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
-      const res = await fetch(`${apiUrl}/owner/complaints?t=${Date.now()}`, {
-        credentials: "include",
-        cache: "no-store"
-      });
+      const [resActive, resHistory] = await Promise.all([
+        fetch(`${apiUrl}/owner/complaints?t=${Date.now()}`, { credentials: "include", cache: "no-store" }),
+        fetch(`${apiUrl}/owner/complaints/history?t=${Date.now()}`, { credentials: "include", cache: "no-store" })
+      ]);
 
-      if (!res.ok) {
-        console.error("Gagal mengambil data keluhan");
-        return;
-      }
-
-      const data = await res.json();
-      const complaintsData = Array.isArray(data) ? data : (data.data || []);
-
-      let allComplaints = complaintsData.map((item, index) => ({
+      const mapComplaint = (item, index) => ({
         id: item.ID || item.id,
         no: item.ID || item.id || (index + 1),
         kamar: item.nomor_kamar || item.kamar?.nomor_kamar || "XX",
         nama: item.nama_penghuni || item.penghuni?.nama || item.User?.nama || "Penghuni",
         teks: item.isi_keluhan,
         status: item.status || item.Status || "pending"
-      }));
+      });
+
+      let aktif = [];
+      let riwayat = [];
+
+      if (resActive.ok) {
+        const dataActive = await resActive.json();
+        const complaintsData = Array.isArray(dataActive) ? dataActive : (dataActive.data || []);
+        aktif = complaintsData.map(mapComplaint);
+      } else {
+        console.error("Gagal mengambil data keluhan aktif");
+      }
+
+      if (resHistory.ok) {
+        const dataHistory = await resHistory.json();
+        const complaintsHistoryData = Array.isArray(dataHistory) ? dataHistory : (dataHistory.data || []);
+        riwayat = complaintsHistoryData.map(mapComplaint);
+      } else {
+        console.error("Gagal mengambil riwayat keluhan");
+      }
 
       if (query) {
         const lowerQuery = query.toLowerCase();
-        allComplaints = allComplaints.filter(k => 
+        aktif = aktif.filter(k => 
+          k.nama.toLowerCase().includes(lowerQuery) || 
+          k.teks.toLowerCase().includes(lowerQuery) ||
+          k.kamar.toLowerCase().includes(lowerQuery)
+        );
+        riwayat = riwayat.filter(k => 
           k.nama.toLowerCase().includes(lowerQuery) || 
           k.teks.toLowerCase().includes(lowerQuery) ||
           k.kamar.toLowerCase().includes(lowerQuery)
         );
       }
-
-      // Aktif hanya yang pending
-      const aktif = allComplaints.filter(k => k.status.toLowerCase() === "pending" || k.status.toLowerCase() === "menunggu");
-      // Riwayat adalah yang proses, selesai, atau declined
-      const riwayat = allComplaints.filter(k => k.status.toLowerCase() !== "pending" && k.status.toLowerCase() !== "menunggu");
 
       setKeluhanAktif(aktif);
       setRiwayatKeluhan(riwayat);
@@ -112,7 +123,7 @@ export default function KeluhanKos() {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ status_keluhan: "proses" })
+        body: JSON.stringify({ status_keluhan: "selesai" })
       });
       if (res.ok) {
         fetchDataKeluhan(searchQuery);

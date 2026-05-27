@@ -27,20 +27,13 @@ const getStatusStyle = (status) => {
   return "bg-gray-100 text-gray-700 border-gray-200";
 };
 
-const RiwayatModal = ({ isOpen, onClose, dataPenghuni }) => {
+const RiwayatModal = ({ isOpen, onClose, dataPenghuni, fullDataBilling = [] }) => {
   const [dataRiwayat, setDataRiwayat] = useState([]);
 
   useEffect(() => {
     if (isOpen && dataPenghuni) {
-      const dummyRiwayat = [
-        { id: 1, jatuhTempo: "11/05/2026", tanggalBayar: "11/05/2026", status: "Lunas" },
-        { id: 2, jatuhTempo: "11/08/2026", tanggalBayar: "11/08/2026", status: "Belum Bayar" },
-        { id: 3, jatuhTempo: "11/08/2026", tanggalBayar: "11/08/2026", status: "Lunas" },
-        { id: 4, jatuhTempo: "11/08/2027", tanggalBayar: "11/08/2027", status: "Lunas" },
-        { id: 5, jatuhTempo: "11/08/2027", tanggalBayar: "11/08/2027", status: "Belum Bayar" },
-        { id: 6, jatuhTempo: "11/08/2031", tanggalBayar: "11/08/2031", status: "Menunggu" },
-      ];
-      setDataRiwayat(dummyRiwayat);
+      const history = fullDataBilling.filter(b => b.nama === dataPenghuni.nama && b.kamar === dataPenghuni.kamar);
+      setDataRiwayat(history);
     }
   }, [isOpen, dataPenghuni]);
 
@@ -117,6 +110,7 @@ export default function KelolaBilling() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [dataBilling, setDataBilling] = useState([]);
+  const [fullDataBilling, setFullDataBilling] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedPenghuni, setSelectedPenghuni] = useState(null);
   
@@ -125,7 +119,7 @@ export default function KelolaBilling() {
   const fetchBillingData = async (query = "", status = "") => {
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
-      const res = await fetch(`${apiUrl}/owner/dashboard/unpaid-residents?t=${Date.now()}`, {
+      const res = await fetch(`${apiUrl}/owner/billings?t=${Date.now()}`, {
         credentials: "include",
         cache: "no-store"
       });
@@ -138,34 +132,45 @@ export default function KelolaBilling() {
       const backendData = await res.json();
 
       let mappedData = backendData.map(b => {
-        // Format nominal to Rp X.XXX.XXX
-        const formattedNominal = `Rp ${b.nominal.toLocaleString('id-ID')}`;
+        // Handle various response structures
+        const nominal = b.nominal || b.Nominal || 0;
+        const formattedNominal = `Rp ${nominal.toLocaleString('id-ID')}`;
         
-        // Format date to DD/MM/YYYY
-        const dateObj = new Date(b.jatuh_tempo);
-        const formattedDate = !isNaN(dateObj) 
+        const dateStr = b.jatuh_tempo || b.JatuhTempo || b.jatuhTempo;
+        const dateObj = new Date(dateStr);
+        const formattedDate = !isNaN(dateObj) && dateStr
           ? `${dateObj.getDate().toString().padStart(2, '0')}/${(dateObj.getMonth() + 1).toString().padStart(2, '0')}/${dateObj.getFullYear()}`
           : "-";
 
-        // Capitalize status
+        const tbStr = b.tanggal_bayar || b.TanggalBayar || b.tanggalBayar;
+        const tbObj = new Date(tbStr);
+        const formattedTb = !isNaN(tbObj) && tbStr
+          ? `${tbObj.getDate().toString().padStart(2, '0')}/${(tbObj.getMonth() + 1).toString().padStart(2, '0')}/${tbObj.getFullYear()}`
+          : "-";
+
+        const statusRaw = b.status_pembayaran || b.StatusPembayaran || b.status || "";
         const statusMap = {
           "menunggu": "Menunggu",
           "lewat tenggat": "Lewat Tenggat",
           "lunas": "Lunas",
-          "belum bayar": "Belum Bayar"
+          "belum bayar": "Belum Bayar",
+          "menunggu pembayaran": "Menunggu"
         };
 
         return {
-          id: b.billing_id,
-          nama: b.nama_penghuni,
-          kamar: b.nomor_kamar,
-          tipe: b.nama_tipe || "-", // Tipe kamar mungkin tidak ada di endpoint ini, gunakan -
+          id: b.billing_id || b.id || b.ID,
+          nama: b.nama_penghuni || b.Penghuni?.Nama || b.nama || "-",
+          kamar: b.nomor_kamar || b.Kamar?.NomorKamar || b.kamar || "-",
+          tipe: b.nama_tipe || b.Kamar?.TipeKamar?.NamaTipe || "-",
           nominal: formattedNominal,
-          siklus: "-", // Siklus bayar mungkin tidak ada, gunakan -
+          siklus: b.siklus_bayar || b.SiklusBayar || "-",
           jatuhTempo: formattedDate,
-          status: statusMap[b.status_pembayaran?.toLowerCase()] || "Menunggu"
+          tanggalBayar: formattedTb,
+          status: statusMap[statusRaw.toLowerCase()] || "Menunggu"
         };
       });
+
+      setFullDataBilling(mappedData);
 
       if (query) {
         const lowerQuery = query.toLowerCase();
@@ -189,10 +194,21 @@ export default function KelolaBilling() {
     fetchBillingData(debouncedSearch, statusFilter);
   }, [debouncedSearch, statusFilter]);
 
-  const handleUpdateStatus = async (id, newStatus) => {
-    setDataBilling((prev) => 
-      prev.map((item) => item.id === id ? { ...item, status: newStatus } : item)
-    );
+  const handleKonfirmasiPembayaran = async (id) => {
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
+      const res = await fetch(`${apiUrl}/owner/billings/${id}`, {
+        method: "PUT",
+        credentials: "include"
+      });
+      if (res.ok) {
+        fetchBillingData(searchQuery, statusFilter);
+      } else {
+        console.error("Gagal konfirmasi pembayaran");
+      }
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   const handleOpenRiwayat = (penghuni) => {
@@ -236,31 +252,32 @@ export default function KelolaBilling() {
     {
       header: "Status Pembayaran",
       render: (row) => (
-        <div className="relative inline-block w-36">
-          <select
-            value={row.status}
-            onChange={(e) => handleUpdateStatus(row.id, e.target.value)}
-            className={`appearance-none w-full px-3 py-1 pr-8 text-xs font-medium border rounded-md cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-gray-300 ${getStatusStyle(row.status)}`}
-          >
-            <option value="Lunas">Lunas</option>
-            <option value="Menunggu">Menunggu</option>
-            <option value="Lewat Tenggat">Lewat Tenggat</option>
-          </select>
-          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-current">
-            <ChevronDown className="w-4 h-4 opacity-70" />
-          </div>
-        </div>
+        <span className={`px-2 py-1 text-xs font-medium border rounded-md ${getStatusStyle(row.status)}`}>
+          {row.status}
+        </span>
       ),
     },
     {
       header: "Aksi",
-      render: (row) => (
-        row.status === "Lunas" ? (
-          <Link href={`/pemilik/billing/bukti/${row.id}`} className="underline text-sm font-medium text-[#1a1a1a] hover:text-gray-600 transition-colors">
-            Lihat Bukti
-          </Link>
-        ) : null
-      ),
+      render: (row) => {
+        if (row.status === "Lunas") {
+          return (
+            <Link href={`/pemilik/billing/bukti/${row.id}`} className="underline text-sm font-medium text-[#1a1a1a] hover:text-gray-600 transition-colors">
+              Lihat Bukti
+            </Link>
+          );
+        } else if (row.status === "Menunggu") {
+          return (
+            <button 
+              onClick={() => handleKonfirmasiPembayaran(row.id)}
+              className="px-3 py-1.5 text-xs font-semibold text-white bg-[#435663] rounded hover:bg-[#3c4d59] transition-colors"
+            >
+              Konfirmasi
+            </button>
+          );
+        }
+        return null;
+      },
     },
     {
       header: "Riwayat",
@@ -318,6 +335,7 @@ export default function KelolaBilling() {
           setSelectedPenghuni(null);
         }} 
         dataPenghuni={selectedPenghuni} 
+        fullDataBilling={fullDataBilling}
       />
     </main>
   );

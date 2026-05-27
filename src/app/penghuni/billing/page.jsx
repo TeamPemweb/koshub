@@ -4,9 +4,12 @@ import { useState, useEffect } from "react";
 import { CircleDollarSign } from "lucide-react";
 
 export default function BillingPenghuni() {
-  const [billings, setBillings] = useState([]);
+  const [activeBillings, setActiveBillings] = useState([]);
+  const [historyBillings, setHistoryBillings] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [hasRoom, setHasRoom] = useState(true);
+  const [roomData, setRoomData] = useState(null);
+  const [profileData, setProfileData] = useState(null);
 
   const fetchBillings = async () => {
     setIsLoading(true);
@@ -29,16 +32,35 @@ export default function BillingPenghuni() {
         setIsLoading(false);
         return;
       }
-      const res = await fetch(`${apiUrl}/resident/my-billings?t=${Date.now()}`, {
+      setRoomData(dataRoom);
+
+      // Fetch Profile
+      const resProfile = await fetch(`${apiUrl}/auth/profile`, { credentials: "include" });
+      if (resProfile.ok) {
+        setProfileData(await resProfile.json());
+      }
+      const resActive = await fetch(`${apiUrl}/resident/my-billings?t=${Date.now()}`, {
         credentials: "include",
         cache: "no-store"
       });
       
-      if (res.ok) {
-        const data = await res.json();
-        setBillings(Array.isArray(data) ? data : (data?.data || []));
+      const resHistory = await fetch(`${apiUrl}/resident/my-billings/history?t=${Date.now()}`, {
+        credentials: "include",
+        cache: "no-store"
+      });
+      
+      if (resActive.ok) {
+        const data = await resActive.json();
+        setActiveBillings(Array.isArray(data) ? data : (data?.data || []));
       } else {
         console.error("Gagal mengambil daftar tagihan");
+      }
+
+      if (resHistory.ok) {
+        const data = await resHistory.json();
+        setHistoryBillings(Array.isArray(data) ? data : (data?.data || []));
+      } else {
+        console.error("Gagal mengambil riwayat tagihan");
       }
     } catch (error) {
       console.error("Terjadi kesalahan:", error);
@@ -51,8 +73,20 @@ export default function BillingPenghuni() {
     fetchBillings();
   }, []);
 
-  const activeBillings = billings.filter(b => b.status_pembayaran?.toLowerCase() !== "lunas");
-  const historyBillings = billings.filter(b => b.status_pembayaran?.toLowerCase() === "lunas");
+  const handlePayBilling = async (id) => {
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
+      await fetch(`${apiUrl}/resident/my-billings/${id}/pay`, {
+        method: "POST",
+        credentials: "include"
+      });
+      fetchBillings();
+    } catch (error) {
+      console.error("Gagal update status pembayaran:", error);
+    }
+  };
+
+
 
   const formatRupiah = (number) => {
     return new Intl.NumberFormat("id-ID", {
@@ -98,9 +132,19 @@ export default function BillingPenghuni() {
         </div>
       </div>
       <div>
-        <button className="px-6 py-2.5 bg-[#435663] text-white text-sm font-medium rounded-lg hover:bg-[#3c4d59] transition-colors">
-          {isHistory ? "Lihat bukti pembayaran" : "Upload bukti pembayaran"}
-        </button>
+        {isHistory ? (
+          <></>
+        ) : (
+          <a 
+            href={`https://wa.me/${(roomData?.TipeKamar?.Pemilik?.NomorTelepon || "6285362310682").replace(/^0/, '62').replace(/\D/g, '')}?text=${encodeURIComponent(`Halo! Saya, ${profileData?.nama || 'Penghuni'} dengan nomor kamar ${roomData?.NomorKamar || '-'}, ingin memberikan bukti pembayaran untuk tagihan bulan ini.`)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={() => handlePayBilling(data.id)}
+            className="px-6 py-2.5 bg-[#435663] text-white text-sm font-medium rounded-lg hover:bg-[#3c4d59] transition-colors inline-block"
+          >
+            Upload bukti pembayaran
+          </a>
+        )}
       </div>
     </div>
   );
@@ -115,7 +159,7 @@ export default function BillingPenghuni() {
   }
 
   return (
-    <main className="flex flex-col px-10 w-full text-[#1a1a1a]">
+    <main className="flex flex-col px-10 mb-10 w-full text-[#1a1a1a]">
       <div className="mb-10 w-full max-w-5xl">
         <h2 className="text-base font-bold text-gray-900 mb-4">Tagihan Kamu</h2>
         {isLoading ? (

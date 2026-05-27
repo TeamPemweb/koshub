@@ -34,7 +34,6 @@ export default function PenghuniDashboard() {
   const [billingsData, setBillingsData] = useState([]);
   const [isLoadingBillings, setIsLoadingBillings] = useState(true);
 
-  // Fetch room data
   const fetchRoom = async () => {
     setIsLoadingRoom(true);
     try {
@@ -89,6 +88,19 @@ export default function PenghuniDashboard() {
     fetchRoom();
     fetchBillings();
   }, []);
+
+  const handlePayBilling = async (id) => {
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
+      await fetch(`${apiUrl}/resident/my-billings/${id}/pay`, {
+        method: "POST",
+        credentials: "include"
+      });
+      fetchBillings();
+    } catch (error) {
+      console.error("Gagal update status pembayaran:", error);
+    }
+  };
 
   const handleCheckCode = async (e) => {
     e.preventDefault();
@@ -217,9 +229,15 @@ export default function PenghuniDashboard() {
                     </div>
                     
                     <div>
-                      <button className="px-6 py-2.5 bg-[#435663] hover:bg-[#3c4d59] text-white text-sm font-medium rounded-lg transition-colors">
+                      <a 
+                        href={`https://wa.me/${(roomData?.TipeKamar?.Pemilik?.NomorTelepon || "6285362310682").replace(/^0/, '62').replace(/\D/g, '')}?text=${encodeURIComponent(`Halo! Saya, ${profileData?.nama || 'Penghuni'} dengan nomor kamar ${roomData?.NomorKamar || '-'}, ingin memberikan bukti pembayaran untuk tagihan bulan ini.`)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={() => handlePayBilling(item.id)}
+                        className="px-6 py-2.5 bg-[#435663] hover:bg-[#3c4d59] text-white text-sm font-medium rounded-lg transition-colors inline-block"
+                      >
                         Upload bukti pembayaran
-                      </button>
+                      </a>
                     </div>
                   </div>
                 ))

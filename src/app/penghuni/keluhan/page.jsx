@@ -89,7 +89,7 @@ export default function KeluhanPenghuni() {
   }
 
   return (
-    <main className="flex flex-col px-10 w-full text-[#1a1a1a]">
+    <main className="flex flex-col px-10 mb-10 w-full text-[#1a1a1a]">
       <div className="mb-10 w-full">
         <label className="block text-sm font-semibold text-gray-800 mb-2">Tulis keluhan Anda disini</label>
         <form onSubmit={handleSubmit} className="flex gap-4">
