@@ -40,7 +40,7 @@ export function Header({
         >
             <div className="flex items-center gap-4">
                 <h1 className="text-2xl font-bold tracking-tight text-foreground">
-                    {title}
+                    {title}, {displayName}!
                 </h1>
             </div>
 

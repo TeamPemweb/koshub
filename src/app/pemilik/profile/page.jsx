@@ -110,8 +110,8 @@ export default function ProfilePage() {
             )}
           </div>
           <div className="flex flex-col text-white">
-            <h2 className="text-2xl font-bold">{profileData.kosName}</h2>
-            <p className="text-sm text-gray-200 mt-1">{profileData.kosLocation}</p>
+            <h2 className="text-2xl font-bold">{profileData.ownerName}</h2>
+            <p className="text-sm text-gray-200 mt-1">{profileData.kosName} • {profileData.kosLocation}</p>
           </div>
         </div>
         <button 

@@ -124,30 +124,62 @@ export default function KelolaBilling() {
 
   const fetchBillingData = async (query = "", status = "") => {
     try {
-      const dummyData = [
-        { id: 1, nama: "Yoga", kamar: "1A", tipe: "Reguler", nominal: "Rp1.000.000", siklus: "1 bulan", jatuhTempo: "11/05/2026", status: "Lunas" },
-        { id: 2, nama: "Bagas", kamar: "1B", tipe: "Premium", nominal: "Rp1.000.000", siklus: "3 bulan", jatuhTempo: "11/08/2026", status: "Menunggu" },
-        { id: 3, nama: "Iqbal", kamar: "1C", tipe: "Premium", nominal: "Rp1.000.000", siklus: "3 bulan", jatuhTempo: "11/08/2026", status: "Lunas" },
-        { id: 4, nama: "Nailah", kamar: "1C", tipe: "Deluxe", nominal: "Rp1.000.000", siklus: "1 tahun", jatuhTempo: "11/08/2027", status: "Lunas" },
-        { id: 5, nama: "Raka", kamar: "1D", tipe: "Elite", nominal: "Rp1.000.000", siklus: "1 tahun", jatuhTempo: "11/08/2027", status: "Lewat Tenggat" },
-        { id: 6, nama: "Prima", kamar: "2A", tipe: "Penthouse", nominal: "Rp1.000.000", siklus: "5 tahun", jatuhTempo: "11/08/2031", status: "Lunas" },
-      ];
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
+      const res = await fetch(`${apiUrl}/owner/dashboard/unpaid-residents?t=${Date.now()}`, {
+        credentials: "include",
+        cache: "no-store"
+      });
 
-      let filteredData = dummyData;
+      if (!res.ok) {
+        console.error("Gagal mengambil data billing");
+        return;
+      }
+
+      const backendData = await res.json();
+
+      let mappedData = backendData.map(b => {
+        // Format nominal to Rp X.XXX.XXX
+        const formattedNominal = `Rp ${b.nominal.toLocaleString('id-ID')}`;
+        
+        // Format date to DD/MM/YYYY
+        const dateObj = new Date(b.jatuh_tempo);
+        const formattedDate = !isNaN(dateObj) 
+          ? `${dateObj.getDate().toString().padStart(2, '0')}/${(dateObj.getMonth() + 1).toString().padStart(2, '0')}/${dateObj.getFullYear()}`
+          : "-";
+
+        // Capitalize status
+        const statusMap = {
+          "menunggu": "Menunggu",
+          "lewat tenggat": "Lewat Tenggat",
+          "lunas": "Lunas",
+          "belum bayar": "Belum Bayar"
+        };
+
+        return {
+          id: b.billing_id,
+          nama: b.nama_penghuni,
+          kamar: b.nomor_kamar,
+          tipe: b.nama_tipe || "-", // Tipe kamar mungkin tidak ada di endpoint ini, gunakan -
+          nominal: formattedNominal,
+          siklus: "-", // Siklus bayar mungkin tidak ada, gunakan -
+          jatuhTempo: formattedDate,
+          status: statusMap[b.status_pembayaran?.toLowerCase()] || "Menunggu"
+        };
+      });
 
       if (query) {
         const lowerQuery = query.toLowerCase();
-        filteredData = filteredData.filter((b) =>
+        mappedData = mappedData.filter((b) =>
           b.nama.toLowerCase().includes(lowerQuery) ||
           b.kamar.toLowerCase().includes(lowerQuery)
         );
       }
 
       if (status) {
-        filteredData = filteredData.filter((b) => b.status === status);
+        mappedData = mappedData.filter((b) => b.status === status);
       }
 
-      setDataBilling(filteredData);
+      setDataBilling(mappedData);
     } catch (error) {
       console.error(error);
     }
@@ -241,7 +273,7 @@ export default function KelolaBilling() {
   ];
 
   return (
-    <main className="flex flex-col px-10 py-6 w-full">
+    <main className="flex flex-col px-10 w-full">
       <div className="mb-8">
         <Field orientation="horizontal" className="flex flex-row gap-4 w-full">
           <Input 

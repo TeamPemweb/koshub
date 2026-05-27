@@ -7,22 +7,37 @@ import { useRouter } from "next/navigation";
 export default function EditProfilePage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  const [isFetching, setIsFetching] = useState(true);
   const [formData, setFormData] = useState({
-    kosName: "",
-    ownerName: "",
-    location: "",
-    phone: ""
+    nama: "",
+    nomor_telepon: "",
+    nama_kos: "",
+    lokasi_kos: ""
   });
 
   useEffect(() => {
     const fetchInitialData = async () => {
-      const initialData = {
-        kosName: "Kos Rukita",
-        ownerName: "Joshua Nathanael Purba",
-        location: "Malang, Jawa Timur",
-        phone: "08123456789"
-      };
-      setFormData(initialData);
+      try {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
+        const res = await fetch(`${apiUrl}/auth/profile?t=${Date.now()}`, {
+          credentials: "include",
+          cache: "no-store"
+        });
+        
+        if (res.ok) {
+          const data = await res.json();
+          setFormData({
+            nama: data.nama || "",
+            nomor_telepon: data.nomor_telepon || "",
+            nama_kos: data.nama_kos || "",
+            lokasi_kos: data.lokasi_kos || ""
+          });
+        }
+      } catch (error) {
+        console.error("Gagal mengambil data profile:", error);
+      } finally {
+        setIsFetching(false);
+      }
     };
     fetchInitialData();
   }, []);
@@ -40,14 +55,20 @@ export default function EditProfilePage() {
     setIsLoading(true);
 
     try {
-      const response = await fetch("/api/profile/update", {
-        method: "PUT",
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
+      const response = await fetch(`${apiUrl}/auth/profile/setup`, {
+        method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify(formData)
       });
 
       if (response.ok) {
+        // Redirect kembali ke halaman profile
         router.push("/pemilik/profile");
+        router.refresh(); // Refresh route to update profile header if any
+      } else {
+        console.error("Gagal memperbarui profile");
       }
     } catch (error) {
       console.error(error);
@@ -55,6 +76,14 @@ export default function EditProfilePage() {
       setIsLoading(false);
     }
   };
+
+  if (isFetching) {
+    return (
+      <main className="flex flex-col px-10 py-8 w-full">
+        <p className="text-gray-500">Memuat data profil...</p>
+      </main>
+    );
+  }
 
   return (
     <main className="flex flex-col px-10 py-8 w-full max-w-4xl font-sans text-[#1a1a1a]">
@@ -72,39 +101,13 @@ export default function EditProfilePage() {
 
       <form onSubmit={handleSubmit} className="space-y-6 max-w-2xl">
         <div className="space-y-2">
-          <label className="text-sm font-bold text-[#1a1a1a]">Nama Kos</label>
-          <input
-            type="text"
-            name="kosName"
-            value={formData.kosName}
-            onChange={handleChange}
-            placeholder="Masukkan nama kos"
-            className="w-full px-4 py-3 border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-[#435663]/20 focus:border-[#435663] transition-all text-sm"
-            required
-          />
-        </div>
-
-        <div className="space-y-2">
           <label className="text-sm font-bold text-[#1a1a1a]">Nama Pemilik Kos</label>
           <input
             type="text"
-            name="ownerName"
-            value={formData.ownerName}
+            name="nama"
+            value={formData.nama}
             onChange={handleChange}
-            placeholder="Masukkan nama pemilik kos"
-            className="w-full px-4 py-3 border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-[#435663]/20 focus:border-[#435663] transition-all text-sm"
-            required
-          />
-        </div>
-
-        <div className="space-y-2">
-          <label className="text-sm font-bold text-[#1a1a1a]">Lokasi Kos</label>
-          <input
-            type="text"
-            name="location"
-            value={formData.location}
-            onChange={handleChange}
-            placeholder="Masukkan lokasi kos"
+            placeholder="Contoh: Ahmad Subarjo"
             className="w-full px-4 py-3 border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-[#435663]/20 focus:border-[#435663] transition-all text-sm"
             required
           />
@@ -114,10 +117,36 @@ export default function EditProfilePage() {
           <label className="text-sm font-bold text-[#1a1a1a]">Nomor Telepon</label>
           <input
             type="text"
-            name="phone"
-            value={formData.phone}
+            name="nomor_telepon"
+            value={formData.nomor_telepon}
             onChange={handleChange}
-            placeholder="Masukkan nomor telepon"
+            placeholder="Contoh: 08123456789"
+            className="w-full px-4 py-3 border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-[#435663]/20 focus:border-[#435663] transition-all text-sm"
+            required
+          />
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-sm font-bold text-[#1a1a1a]">Nama Kos</label>
+          <input
+            type="text"
+            name="nama_kos"
+            value={formData.nama_kos}
+            onChange={handleChange}
+            placeholder="Contoh: Kos SinggahSini"
+            className="w-full px-4 py-3 border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-[#435663]/20 focus:border-[#435663] transition-all text-sm"
+            required
+          />
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-sm font-bold text-[#1a1a1a]">Lokasi Kos</label>
+          <input
+            type="text"
+            name="lokasi_kos"
+            value={formData.lokasi_kos}
+            onChange={handleChange}
+            placeholder="Contoh: Jl. Sigura-gura No. 10, Malang"
             className="w-full px-4 py-3 border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-[#435663]/20 focus:border-[#435663] transition-all text-sm"
             required
           />

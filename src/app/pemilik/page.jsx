@@ -65,29 +65,73 @@ export default function Dashboard() {
 
   const fetchDashboardData = async () => {
     try {
-      const dummyStats = {
-        totalTagihan: 2,
-        totalPenghuni: 2,
-        totalKamar: 26,
-        totalTipeKamar: 5,
-        totalKeluhan: 2,
-      };
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
+      
+      const [resProfile, resUnpaid, resComplaints, resRooms, resRoomTypes] = await Promise.all([
+        fetch(`${apiUrl}/auth/profile`, { credentials: "include", cache: "no-store" }),
+        fetch(`${apiUrl}/owner/dashboard/unpaid-residents`, { credentials: "include", cache: "no-store" }),
+        fetch(`${apiUrl}/owner/complaints`, { credentials: "include", cache: "no-store" }).catch(() => null),
+        fetch(`${apiUrl}/owner/rooms`, { credentials: "include", cache: "no-store" }),
+        fetch(`${apiUrl}/owner/room-types`, { credentials: "include", cache: "no-store" })
+      ]);
 
-      const dummyTagihan = [
-        { id: 1, nama: "Bagas", kamar: "1B", tipe: "Premium", nominal: "Rp1.000.000", siklus: "3 bulan", jatuhTempo: "11/08/2026", status: "Menunggu" },
-        { id: 2, nama: "Raka", kamar: "1D", tipe: "Elite", nominal: "Rp1.000.000", siklus: "1 tahun", jatuhTempo: "11/08/2027", status: "Lewat Tenggat" },
-        { id: 3, nama: "Yoga", kamar: "1A", tipe: "Reguler", nominal: "Rp1.000.000", siklus: "1 bulan", jatuhTempo: "11/08/2026", status: "Menunggu" },
-      ];
+      const profileData = resProfile.ok ? await resProfile.json() : {};
+      const unpaidData = resUnpaid.ok ? await resUnpaid.json() : [];
+      let complaintsData = [];
+      if (resComplaints && resComplaints.ok) {
+        try { complaintsData = await resComplaints.json(); } catch(e) {}
+      }
+      const roomsData = resRooms.ok ? await resRooms.json() : [];
+      const roomTypesData = resRoomTypes.ok ? await resRoomTypes.json() : [];
 
-      const dummyKeluhan = [
-        { id: 1, no: "1", kamar: "XX", nama: "Tobias Andra Valentino", teks: "Lorem ipsum dolor sit amet consectetur. Nisi pellentesque urna volutpat magna vitae sit sagittis in dolor. In integer facilisi risus diam adipiscing pulvinar in id varius. Purus viverra blandit et vestibulum orci morbi. Neque pretium vitae justo nisl." },
-        { id: 2, no: "2", kamar: "XX", nama: "Tobias Andra Valentino", teks: "Lorem ipsum dolor sit amet consectetur. Nisi pellentesque urna volutpat magna vitae sit sagittis in dolor. In integer facilisi risus diam adipiscing pulvinar in id varius. Purus viverra blandit et vestibulum orci morbi. Neque pretium vitae justo nisl." },
-        { id: 3, no: "3", kamar: "XX", nama: "Tobias Andra Valentino", teks: "Lorem ipsum dolor sit amet consectetur. Nisi pellentesque urna volutpat magna vitae sit sagittis in dolor. In integer facilisi risus diam adipiscing pulvinar in id varius. Purus viverra blandit et vestibulum orci morbi. Neque pretium vitae justo nisl." },
-      ];
+      const statsProfile = profileData.stats || {};
+      
+      setStats({
+        totalTagihan: Array.isArray(unpaidData) ? unpaidData.length : 0,
+        totalPenghuni: statsProfile.total_kamar_terisi || 0,
+        totalKamar: Array.isArray(roomsData) ? roomsData.length : 0,
+        totalTipeKamar: Array.isArray(roomTypesData) ? roomTypesData.length : 0,
+        totalKeluhan: statsProfile.total_komplain_pending || 0,
+      });
 
-      setStats(dummyStats);
-      setTagihan(dummyTagihan.slice(0, 2));
-      setKeluhan(dummyKeluhan.slice(0, 2));
+      // format tagihan (max 5)
+      const mappedTagihan = (Array.isArray(unpaidData) ? unpaidData : []).slice(0, 5).map(b => {
+        const formattedNominal = `Rp ${(b.nominal || 0).toLocaleString('id-ID')}`;
+        const dateObj = new Date(b.jatuh_tempo);
+        const formattedDate = !isNaN(dateObj) 
+          ? `${dateObj.getDate().toString().padStart(2, '0')}/${(dateObj.getMonth() + 1).toString().padStart(2, '0')}/${dateObj.getFullYear()}` 
+          : "-";
+        
+        const statusMap = {
+          "menunggu": "Menunggu",
+          "lewat tenggat": "Lewat Tenggat",
+          "lunas": "Lunas",
+          "belum bayar": "Belum Bayar"
+        };
+
+        return {
+          id: b.billing_id,
+          nama: b.nama_penghuni,
+          kamar: b.nomor_kamar,
+          tipe: b.nama_tipe || "-", 
+          nominal: formattedNominal,
+          siklus: "-", 
+          jatuhTempo: formattedDate,
+          status: statusMap[b.status_pembayaran?.toLowerCase()] || "Menunggu"
+        };
+      });
+      setTagihan(mappedTagihan);
+
+      // format keluhan (max 5)
+      const mappedKeluhan = (Array.isArray(complaintsData) ? complaintsData : []).slice(0, 5).map((item, index) => ({
+        id: item.ID || item.id,
+        no: item.ID || item.id || (index + 1),
+        kamar: item.nomor_kamar || item.kamar?.nomor_kamar || "XX",
+        nama: item.nama_penghuni || item.penghuni?.nama || item.User?.nama || "Penghuni",
+        teks: item.isi_keluhan
+      }));
+      setKeluhan(mappedKeluhan);
+
     } catch (error) {
       console.error(error);
     }
@@ -157,7 +201,7 @@ export default function Dashboard() {
   ];
 
   return (
-    <main className="flex flex-col px-10 py-6 w-full">
+    <main className="flex flex-col px-10 w-full">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
         <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex flex-col items-center justify-center gap-2">
           <CircleDollarSign className="w-6 h-6 text-[#1a1a1a] mb-2" strokeWidth={1.5} />

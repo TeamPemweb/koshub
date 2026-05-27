@@ -56,7 +56,6 @@ export default function KelolaKamar() {
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
       
-      // Fetch both rooms and residents simultaneously
       const [resRooms, resResidents] = await Promise.all([
         fetch(`${apiUrl}/owner/rooms`, { credentials: "include" }),
         fetch(`${apiUrl}/owner/residents`, { credentials: "include" })
@@ -69,7 +68,6 @@ export default function KelolaKamar() {
 
       const backendData = await resRooms.json();
       
-      // Attempt to parse residents data, fallback to empty array if fails
       let residentsData = [];
       if (resResidents.ok) {
         try {
@@ -80,7 +78,6 @@ export default function KelolaKamar() {
       }
       
       const mappedData = backendData.map(room => {
-        // Find resident for this specific room
         const resident = residentsData.find(r => r.kamar_id === room.ID);
         const tenantName = resident ? resident.nama_penghuni : null;
         
@@ -198,7 +195,9 @@ export default function KelolaKamar() {
         <Link href="/pemilik/kamar/create">
           <Button className="cursor-pointer" variant="default" size="lg">+ Tambah Kamar</Button>
         </Link>
-        <Button variant="outline" size="lg">Kelola Tipe Kamar</Button>
+        <Link href="/pemilik/kamar/kelola">
+          <Button variant="outline" size="lg" className="cursor-pointer">Kelola Tipe Kamar</Button>
+        </Link>
 
         <div className="w-0.5 h-6 bg-gray-400"></div>
 

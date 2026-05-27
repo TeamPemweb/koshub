@@ -12,7 +12,7 @@ export default function LayoutPenghuni({ children }) {
                 <main className="flex h-screen w-full overflow-hidden bg-background">
                     <AppSidebar />
                     <div className="flex-1 flex flex-col overflow-hidden">
-                        <Header title="Selamat Datang!" />
+                        <Header title="Selamat Datang" />
                         <div className="flex-1 overflow-y-auto">
                             {children}
                         </div>

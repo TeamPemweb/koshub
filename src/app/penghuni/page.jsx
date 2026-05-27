@@ -110,7 +110,7 @@ export default function PenghuniDashboard() {
   };
 
   return (
-    <main className="flex flex-col px-10 py-6 w-full font-sans text-[#1a1a1a] min-h-full">
+    <main className="flex flex-col px-10 w-full font-sans text-[#1a1a1a] min-h-full">
       {isLoadingRoom ? (
         <div className="flex-1 flex items-center justify-center">
           <p className="text-gray-500">Memuat data kamar...</p>

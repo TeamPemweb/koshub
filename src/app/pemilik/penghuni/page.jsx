@@ -164,7 +164,7 @@ export default function KelolaPenghuni() {
   ];
 
   return (
-    <main className="flex flex-col px-10 py-6 w-full max-w-7xl">
+    <main className="flex flex-col px-10 w-full">
       <div className="mb-6">
         <Field orientation="horizontal" className="flex flex-row gap-4 w-full">
           <Input 
