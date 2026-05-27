@@ -7,19 +7,36 @@ export default function KeluhanPenghuni() {
   const [newComplaint, setNewComplaint] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasRoom, setHasRoom] = useState(true);
 
   const fetchComplaints = async () => {
     setIsLoading(true);
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
-      const res = await fetch(`${apiUrl}/resident/my-complaints?t=${Date.now()}`, {
+      
+      // Check room first
+      const resRoom = await fetch(`${apiUrl}/resident/my-room?t=${Date.now()}`, {
+        credentials: "include",
+        cache: "no-store"
+      });
+      if (!resRoom.ok) {
+        setHasRoom(false);
+        setIsLoading(false);
+        return;
+      }
+      const dataRoom = await resRoom.json();
+      if (!dataRoom || Object.keys(dataRoom).length === 0 || !dataRoom.ID) {
+        setHasRoom(false);
+        setIsLoading(false);
+        return;
+      }
+      const res = await fetch(`${apiUrl}/resident/my-complaints/history`, {
         credentials: "include",
         cache: "no-store"
       });
       
       if (res.ok) {
         const data = await res.json();
-        // Fallback to empty array if response is null or not an array
         setComplaints(Array.isArray(data) ? data : (data?.data || []));
       } else {
         console.error("Gagal mengambil riwayat keluhan");
@@ -61,6 +78,15 @@ export default function KeluhanPenghuni() {
       setIsSubmitting(false);
     }
   };
+
+  if (!hasRoom && !isLoading) {
+    return (
+      <main className="flex flex-col items-center justify-center px-10 py-20 w-full text-[#1a1a1a] h-full">
+        <h2 className="text-xl font-bold mb-2">Akses Ditolak</h2>
+        <p className="text-sm text-gray-500">Kamu belum masuk ke kamar. Silakan ke halaman Home untuk memasukkan kode kamar.</p>
+      </main>
+    );
+  }
 
   return (
     <main className="flex flex-col px-10 w-full text-[#1a1a1a]">
@@ -109,9 +135,25 @@ export default function KeluhanPenghuni() {
                     </div>
                   </div>
                   <div>
-                    <div className="text-xs text-gray-500 font-medium mb-1">Keluhan</div>
+                    <div className="flex items-center justify-between mb-1">
+                      <div className="text-xs text-gray-500 font-medium">Keluhan</div>
+                      {item.StatusKeluhan && (() => {
+                        const s = item.StatusKeluhan.toLowerCase();
+                        let badgeClass = "bg-gray-100 text-gray-700";
+                        if (s === "pending" || s === "menunggu") badgeClass = "bg-yellow-100 text-yellow-700";
+                        else if (s === "proses") badgeClass = "bg-blue-100 text-blue-700";
+                        else if (s === "ditolak" || s === "declined") badgeClass = "bg-red-100 text-red-700";
+                        else if (s === "selesai" || s === "resolved") badgeClass = "bg-green-100 text-green-700";
+                        
+                        return (
+                          <div className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${badgeClass}`}>
+                            {item.StatusKeluhan.toUpperCase()}
+                          </div>
+                        );
+                      })()}
+                    </div>
                     <div className="text-sm text-gray-800 leading-relaxed">
-                      {item.isi_keluhan}
+                      {item.IsiKeluhan || item.isi_keluhan}
                     </div>
                   </div>
                 </div>

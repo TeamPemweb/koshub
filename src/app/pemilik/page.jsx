@@ -142,11 +142,41 @@ export default function Dashboard() {
   }, []);
 
   const handleResolveKeluhan = async (id) => {
-    console.log("Resolve keluhan ID:", id);
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
+      const res = await fetch(`${apiUrl}/owner/complaints/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ status_keluhan: "proses" })
+      });
+      if (res.ok) {
+        fetchDashboardData();
+      } else {
+        console.error("Gagal memperbarui status keluhan");
+      }
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   const handleRejectKeluhan = async (id) => {
-    console.log("Reject keluhan ID:", id);
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
+      const res = await fetch(`${apiUrl}/owner/complaints/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ status_keluhan: "declined" })
+      });
+      if (res.ok) {
+        fetchDashboardData();
+      } else {
+        console.error("Gagal memperbarui status keluhan");
+      }
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   const columns = [
@@ -201,7 +231,7 @@ export default function Dashboard() {
   ];
 
   return (
-    <main className="flex flex-col px-10 w-full">
+    <main className="flex flex-col px-10 w-full mb-10">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
         <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex flex-col items-center justify-center gap-2">
           <CircleDollarSign className="w-6 h-6 text-[#1a1a1a] mb-2" strokeWidth={1.5} />

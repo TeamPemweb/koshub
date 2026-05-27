@@ -109,11 +109,33 @@ export default function KelolaPenghuni() {
     setIsModalOpen(true);
   };
 
-  const handleConfirmAkhiriSewa = () => {
-    // Placeholder untuk endpoint akhiri sewa nantinya
-    alert(`Mensimulasikan pengakhiran sewa untuk ${selectedPenghuni?.nama}. Endpoint belum tersedia.`);
-    setIsModalOpen(false);
-    setSelectedPenghuni(null);
+  const handleConfirmAkhiriSewa = async () => {
+    if (!selectedPenghuni) return;
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
+      const res = await fetch(`${apiUrl}/owner/rooms/${selectedPenghuni.id}/end-lease`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+
+      if (res.ok) {
+        setIsModalOpen(false);
+        setSelectedPenghuni(null);
+        fetchDataPenghuni(searchQuery);
+      } else {
+        let errorMsg = "Gagal mengakhiri sewa";
+        try {
+          const data = await res.json();
+          errorMsg = data.error || data.message || errorMsg;
+        } catch(e) {
+          errorMsg = await res.text() || errorMsg;
+        }
+        alert(errorMsg);
+      }
+    } catch (error) {
+      console.error(error);
+      alert("Terjadi kesalahan pada sistem.");
+    }
   };
 
   const columns = [

@@ -51,12 +51,15 @@ export default function AppSidebar() {
       const checkRoom = async () => {
         try {
           const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
-          const res = await fetch(`${apiUrl}/resident/my-room`, { credentials: "include" });
+          const res = await fetch(`${apiUrl}/resident/my-room?t=${Date.now()}`, {
+            credentials: "include",
+            cache: "no-store",
+          });
           if (!res.ok) {
             setHasRoom(false);
           } else {
             const data = await res.json();
-            if (!data || Object.keys(data).length === 0) setHasRoom(false);
+            if (!data || Object.keys(data).length === 0 || !data.ID) setHasRoom(false);
             else setHasRoom(true);
           }
         } catch {

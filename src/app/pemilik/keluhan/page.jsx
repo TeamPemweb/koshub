@@ -57,36 +57,47 @@ export default function KeluhanKos() {
 
   const fetchDataKeluhan = async (query = "") => {
     try {
-      const dummyAktif = [
-        { id: 1, no: "1", kamar: "XX", nama: "Tobias Andra Valentino", teks: "Lorem ipsum dolor sit amet consectetur. Nisi pellentesque urna volutpat magna vitae sit sagittis in dolor. In integer facilisi risus diam adipiscing pulvinar in id varius. Purus viverra blandit et vestibulum orci morbi. Neque pretium vitae justo nisl." },
-        { id: 2, no: "1", kamar: "XX", nama: "Tobias Andra Valentino", teks: "Lorem ipsum dolor sit amet consectetur. Nisi pellentesque urna volutpat magna vitae sit sagittis in dolor. In integer facilisi risus diam adipiscing pulvinar in id varius. Purus viverra blandit et vestibulum orci morbi. Neque pretium vitae justo nisl." },
-      ];
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
+      const res = await fetch(`${apiUrl}/owner/complaints?t=${Date.now()}`, {
+        credentials: "include",
+        cache: "no-store"
+      });
 
-      const dummyRiwayat = [
-        { id: 3, no: "1", kamar: "XX", nama: "Tobias Andra Valentino", teks: "Lorem ipsum dolor sit amet consectetur. Nisi pellentesque urna volutpat magna vitae sit sagittis in dolor. In integer facilisi risus diam adipiscing pulvinar in id varius. Purus viverra blandit et vestibulum orci morbi. Neque pretium vitae justo nisl." },
-        { id: 4, no: "1", kamar: "XX", nama: "Tobias Andra Valentino", teks: "Lorem ipsum dolor sit amet consectetur. Nisi pellentesque urna volutpat magna vitae sit sagittis in dolor. In integer facilisi risus diam adipiscing pulvinar in id varius. Purus viverra blandit et vestibulum orci morbi. Neque pretium vitae justo nisl." },
-      ];
+      if (!res.ok) {
+        console.error("Gagal mengambil data keluhan");
+        return;
+      }
+
+      const data = await res.json();
+      const complaintsData = Array.isArray(data) ? data : (data.data || []);
+
+      let allComplaints = complaintsData.map((item, index) => ({
+        id: item.ID || item.id,
+        no: item.ID || item.id || (index + 1),
+        kamar: item.nomor_kamar || item.kamar?.nomor_kamar || "XX",
+        nama: item.nama_penghuni || item.penghuni?.nama || item.User?.nama || "Penghuni",
+        teks: item.isi_keluhan,
+        status: item.status || item.Status || "pending"
+      }));
 
       if (query) {
         const lowerQuery = query.toLowerCase();
-        
-        setKeluhanAktif(dummyAktif.filter(k => 
+        allComplaints = allComplaints.filter(k => 
           k.nama.toLowerCase().includes(lowerQuery) || 
           k.teks.toLowerCase().includes(lowerQuery) ||
           k.kamar.toLowerCase().includes(lowerQuery)
-        ));
-        
-        setRiwayatKeluhan(dummyRiwayat.filter(k => 
-          k.nama.toLowerCase().includes(lowerQuery) || 
-          k.teks.toLowerCase().includes(lowerQuery) ||
-          k.kamar.toLowerCase().includes(lowerQuery)
-        ));
-      } else {
-        setKeluhanAktif(dummyAktif);
-        setRiwayatKeluhan(dummyRiwayat);
+        );
       }
+
+      // Aktif hanya yang pending
+      const aktif = allComplaints.filter(k => k.status.toLowerCase() === "pending" || k.status.toLowerCase() === "menunggu");
+      // Riwayat adalah yang proses, selesai, atau declined
+      const riwayat = allComplaints.filter(k => k.status.toLowerCase() !== "pending" && k.status.toLowerCase() !== "menunggu");
+
+      setKeluhanAktif(aktif);
+      setRiwayatKeluhan(riwayat);
     } catch (error) {
-      console.error(error);
+      console.error("Error fetching complaints:", error);
     }
   };
 
@@ -95,11 +106,41 @@ export default function KeluhanKos() {
   }, [debouncedSearch]);
 
   const handleResolve = async (id) => {
-    console.log("Resolve keluhan ID:", id);
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
+      const res = await fetch(`${apiUrl}/owner/complaints/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ status_keluhan: "proses" })
+      });
+      if (res.ok) {
+        fetchDataKeluhan(searchQuery);
+      } else {
+        console.error("Gagal memperbarui status keluhan");
+      }
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   const handleReject = async (id) => {
-    console.log("Reject keluhan ID:", id);
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
+      const res = await fetch(`${apiUrl}/owner/complaints/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ status_keluhan: "declined" })
+      });
+      if (res.ok) {
+        fetchDataKeluhan(searchQuery);
+      } else {
+        console.error("Gagal memperbarui status keluhan");
+      }
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   return (

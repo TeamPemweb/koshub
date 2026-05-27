@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { DollarSign } from "lucide-react";
+import { CircleDollarSign, AlertTriangle } from "lucide-react";
 import Link from "next/link";
 
 export default function PenghuniDashboard() {
@@ -10,6 +10,7 @@ export default function PenghuniDashboard() {
   const [isLoadingRoom, setIsLoadingRoom] = useState(true);
   const [roomCode, setRoomCode] = useState("");
   const [isSubmittingCode, setIsSubmittingCode] = useState(false);
+  const [errorCode, setErrorCode] = useState("");
 
   // Fetch real profile name
   useEffect(() => {
@@ -30,13 +31,17 @@ export default function PenghuniDashboard() {
     fetchProfile();
   }, []);
 
+  const [billingsData, setBillingsData] = useState([]);
+  const [isLoadingBillings, setIsLoadingBillings] = useState(true);
+
   // Fetch room data
   const fetchRoom = async () => {
     setIsLoadingRoom(true);
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
-      const res = await fetch(`${apiUrl}/resident/my-room`, {
-        credentials: "include"
+      const res = await fetch(`${apiUrl}/resident/my-room?t=${Date.now()}`, {
+        credentials: "include",
+        cache: "no-store"
       });
       if (res.ok) {
         const data = await res.json();
@@ -57,8 +62,32 @@ export default function PenghuniDashboard() {
     }
   };
 
+  // Fetch billings data
+  const fetchBillings = async () => {
+    setIsLoadingBillings(true);
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
+      const res = await fetch(`${apiUrl}/resident/my-billings?t=${Date.now()}`, {
+        credentials: "include",
+        cache: "no-store"
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setBillingsData(Array.isArray(data) ? data : (data?.data || []));
+      } else {
+        setBillingsData([]);
+      }
+    } catch (error) {
+      console.error("Gagal mengambil data tagihan:", error);
+      setBillingsData([]);
+    } finally {
+      setIsLoadingBillings(false);
+    }
+  };
+
   useEffect(() => {
     fetchRoom();
+    fetchBillings();
   }, []);
 
   const handleCheckCode = async (e) => {
@@ -78,36 +107,65 @@ export default function PenghuniDashboard() {
       const data = await res.json();
       
       if (res.ok) {
-        // Reload seluruh halaman agar AppSidebar dan PenghuniDashboard memuat state terbaru (hasRoom = true)
+        setErrorCode("");
         window.location.reload();
       } else {
-        alert(data.message || "Kode kamar tidak valid atau gagal bergabung.");
+        setErrorCode(data.message || "Kode tidak sesuai.");
       }
     } catch (error) {
       console.error("Gagal verifikasi kode:", error);
-      alert("Terjadi kesalahan saat memproses permintaan.");
+      setErrorCode("Terjadi kesalahan saat memproses permintaan.");
     } finally {
       setIsSubmittingCode(false);
     }
   };
 
   const getStatusBadge = (status) => {
-    if (status === "Menunggu") {
+    const s = status ? status.toLowerCase() : "";
+    if (s === "menunggu") {
       return (
-        <span className="px-2 py-0.5 text-[10px] font-bold bg-orange-100 text-orange-600 rounded-md border border-orange-200 uppercase tracking-wider">
+        <span className="px-3 py-1 text-[11px] font-medium bg-orange-100 text-orange-600 rounded-full border border-orange-200">
           Menunggu
         </span>
       );
     }
-    if (status === "Lewat Tenggat") {
+    if (s === "lewat tenggat" || s === "terlambat") {
       return (
-        <span className="px-2 py-0.5 text-[10px] font-bold bg-red-100 text-red-600 rounded-md border border-red-200 uppercase tracking-wider">
+        <span className="px-3 py-1 text-[11px] font-medium bg-red-100 text-red-600 rounded-full border border-red-200">
           Lewat Tenggat
         </span>
       );
     }
-    return null;
+    if (s === "lunas") {
+      return (
+        <span className="px-3 py-1 text-[11px] font-medium bg-green-100 text-green-600 rounded-full border border-green-200">
+          Lunas
+        </span>
+      );
+    }
+    return (
+      <span className="px-3 py-1 text-[11px] font-medium bg-gray-100 text-gray-600 rounded-full border border-gray-200">
+        {status}
+      </span>
+    );
   };
+
+  const formatRupiah = (number) => {
+    return new Intl.NumberFormat("id-ID", {
+      style: "currency",
+      currency: "IDR",
+      minimumFractionDigits: 0
+    }).format(number);
+  };
+
+  const formatDate = (dateString) => {
+    if (!dateString) return "-";
+    const date = new Date(dateString);
+    if (isNaN(date)) return dateString;
+    return `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear()}`;
+  };
+
+  const activeBillings = billingsData.filter(b => b.status_pembayaran?.toLowerCase() !== "lunas");
 
   return (
     <main className="flex flex-col px-10 w-full font-sans text-[#1a1a1a] min-h-full">
@@ -131,35 +189,41 @@ export default function PenghuniDashboard() {
             </div>
           </div>
 
-          <div>
-            <h2 className="text-lg font-bold mb-4">Tagihan Kamu</h2>
+          <div className="mb-10 w-full">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-bold text-gray-900">Tagihan Kamu</h2>
+              <Link href="/penghuni/billing" className="text-sm font-medium text-[#435663] hover:underline">
+                Lihat Semua
+              </Link>
+            </div>
+            
             <div className="flex flex-col gap-4">
-              {/* Data tagihan masih dummy karena belum ada endpoint /resident/bills */}
-              {[
-                { id: 1, tanggal: "11/05/2026", nominal: "Rp1.000.000", status: "Menunggu" },
-                { id: 2, tanggal: "11/05/2026", nominal: "Rp1.000.000", status: "Lewat Tenggat" }
-              ].map((item) => (
-                <div key={item.id} className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
-                  <div className="flex flex-col gap-3">
-                    <div className="font-bold text-lg">{item.tanggal}</div>
-                    <div className="flex items-center gap-2 text-[#435663] font-semibold">
-                      <div className="w-5 h-5 rounded-full border-2 border-[#435663] flex items-center justify-center">
-                        <DollarSign className="w-3 h-3" strokeWidth={3} />
+              {isLoadingBillings ? (
+                <div className="text-gray-500 text-sm">Memuat tagihan...</div>
+              ) : activeBillings.length === 0 ? (
+                <div className="text-gray-500 italic text-sm">Tidak ada tagihan aktif.</div>
+              ) : (
+                activeBillings.slice(0, 3).map((item) => (
+                  <div key={item.id} className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div className="flex flex-col gap-4">
+                      <div className="font-bold text-lg">{formatDate(item.jatuh_tempo)}</div>
+                      <div className="flex items-center gap-2 text-sm text-[#1a1a1a] font-medium">
+                        <CircleDollarSign className="w-5 h-5 text-gray-800" strokeWidth={2} />
+                        {formatRupiah(item.nominal)}
                       </div>
-                      {item.nominal}
+                      <div className="flex items-center">
+                        {getStatusBadge(item.status_pembayaran)}
+                      </div>
                     </div>
+                    
                     <div>
-                      {getStatusBadge(item.status)}
+                      <button className="px-6 py-2.5 bg-[#435663] hover:bg-[#3c4d59] text-white text-sm font-medium rounded-lg transition-colors">
+                        Upload bukti pembayaran
+                      </button>
                     </div>
                   </div>
-                  
-                  <div>
-                    <button className="px-6 py-2.5 bg-[#435663] hover:bg-[#3c4d59] text-white text-sm font-medium rounded-md transition-colors">
-                      Upload bukti pembayaran
-                    </button>
-                  </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </div>
         </>
@@ -183,23 +247,33 @@ export default function PenghuniDashboard() {
 
           <form onSubmit={handleCheckCode} className="flex flex-col items-start w-full max-w-[320px]">
             <label className="text-xs font-semibold mb-1.5 text-[#1a1a1a]">Kode</label>
-            <div className="flex w-full gap-2">
+            <div className="flex w-full gap-2 mb-4">
               <input
                 type="text"
                 value={roomCode}
-                onChange={(e) => setRoomCode(e.target.value)}
+                onChange={(e) => {
+                  setRoomCode(e.target.value);
+                  setErrorCode("");
+                }}
                 placeholder="Masukkan kode yang diberikan"
                 className="flex-1 border border-gray-200 rounded-md px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#435663]/20 focus:border-[#435663] transition-colors"
                 required
               />
               <button
                 type="submit"
-                disabled={isSubmittingCode}
+                disabled={isSubmittingCode || !roomCode.trim()}
                 className="bg-[#435663] text-white px-5 py-2.5 rounded-md text-sm font-medium hover:bg-[#3c4d59] transition-colors disabled:opacity-50"
               >
                 {isSubmittingCode ? "..." : "Cek"}
               </button>
             </div>
+            
+            {errorCode && (
+              <div className="w-full flex items-center justify-center gap-2 border border-red-100 rounded-xl py-3 px-4">
+                <AlertTriangle className="w-5 h-5 text-red-500" strokeWidth={2.5} />
+                <span className="text-[14px] text-red-500 font-medium">{errorCode}</span>
+              </div>
+            )}
           </form>
         </div>
       )}
