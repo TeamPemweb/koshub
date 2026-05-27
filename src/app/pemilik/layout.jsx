@@ -1,3 +1,5 @@
+"use client";
+
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import AppSidebar from "@/components/ui/app-sidebar";
@@ -10,11 +12,7 @@ export default function LayoutPemilik({ children }) {
                 <main className="flex h-screen w-full overflow-hidden bg-background">
                     <AppSidebar />
                     <div className="flex-1 flex flex-col overflow-hidden">
-                        <Header
-                            title="Selamat Datang, User!"
-                            userName="Vincent"
-                            userEmail="fefsjffjlfljk"
-                        />
+                        <Header title="Selamat Datang!" />
                         <div className="flex-1 overflow-y-auto">
                             {children}
                         </div>

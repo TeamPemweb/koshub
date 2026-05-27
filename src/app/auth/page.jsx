@@ -1,10 +1,65 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import Link from "next/link";
 import { Field, FieldLabel, FieldContent } from "@/components/ui/field";
+import Link from "next/link";
 
 export default function SignUp() {
+    const router = useRouter();
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
+    const [konfirmasiPassword, setKonfirmasiPassword] = useState("");
+    const [error, setError] = useState("");
+    const [success, setSuccess] = useState("");
+    const [loading, setLoading] = useState(false);
+
+    async function handleSubmit(e) {
+        e.preventDefault();
+        setError("");
+        setSuccess("");
+
+        if (password !== konfirmasiPassword) {
+            setError("Password dan konfirmasi password tidak cocok.");
+            return;
+        }
+
+        if (password.length < 6) {
+            setError("Password minimal 6 karakter.");
+            return;
+        }
+
+        setLoading(true);
+
+        try {
+            const res = await fetch(
+                `${process.env.NEXT_PUBLIC_API_URL}/auth/register`,
+                {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    credentials: "include",
+                    body: JSON.stringify({ email, password }),
+                }
+            );
+
+            const data = await res.json();
+
+            if (!res.ok) {
+                setError(data.message || "Registrasi gagal. Coba lagi.");
+                setLoading(false);
+                return;
+            }
+
+            setSuccess("Akun berhasil dibuat! Mengalihkan ke halaman login...");
+            setTimeout(() => router.push("/"), 1500);
+        } catch {
+            setError("Terjadi kesalahan. Coba lagi.");
+            setLoading(false);
+        }
+    }
+
     return (
         <main className="w-full h-screen overflow-hidden lg:grid lg:grid-cols-2">
             <section className="hidden lg:block relative p-4 lg:p-6 bg-background">
@@ -33,31 +88,63 @@ export default function SignUp() {
                         <p className="text-muted-foreground">Daftar dengan akun KosHub</p>
                     </div>
 
-                    <form className="flex flex-col gap-5 w-full">
-
+                    <form className="flex flex-col gap-5 w-full" onSubmit={handleSubmit}>
                         <Field orientation="vertical">
                             <FieldLabel htmlFor="email">Email</FieldLabel>
                             <FieldContent>
-                                <Input type="email" id="email" placeholder="Masukkan email Anda" required />
+                                <Input
+                                    type="email"
+                                    id="email"
+                                    placeholder="Masukkan email Anda"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    required
+                                />
                             </FieldContent>
                         </Field>
 
                         <Field orientation="vertical">
                             <FieldLabel htmlFor="password">Password</FieldLabel>
                             <FieldContent>
-                                <Input type="password" id="password" placeholder="Masukkan password Anda" required />
+                                <Input
+                                    type="password"
+                                    id="password"
+                                    placeholder="Masukkan password Anda"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    required
+                                />
                             </FieldContent>
                         </Field>
 
                         <Field orientation="vertical">
                             <FieldLabel htmlFor="konfirmasiPassword">Konfirmasi Password</FieldLabel>
                             <FieldContent>
-                                <Input type="password" id="konfirmasiPassword" placeholder="Masukkan password Anda" required />
+                                <Input
+                                    type="password"
+                                    id="konfirmasiPassword"
+                                    placeholder="Ulangi password Anda"
+                                    value={konfirmasiPassword}
+                                    onChange={(e) => setKonfirmasiPassword(e.target.value)}
+                                    required
+                                />
                             </FieldContent>
                         </Field>
 
-                        <Button type="submit" className="w-full mt-2" size="lg">
-                            Daftar
+                        {error && (
+                            <div className="rounded-lg bg-destructive/10 border border-destructive/20 px-4 py-3">
+                                <p className="text-sm text-destructive font-medium">{error}</p>
+                            </div>
+                        )}
+
+                        {success && (
+                            <div className="rounded-lg bg-green-50 border border-green-200 px-4 py-3">
+                                <p className="text-sm text-green-700 font-medium">{success}</p>
+                            </div>
+                        )}
+
+                        <Button type="submit" className="w-full mt-2" size="lg" disabled={loading}>
+                            {loading ? "Mendaftar..." : "Daftar"}
                         </Button>
                     </form>
 
@@ -71,7 +158,6 @@ export default function SignUp() {
                     </div>
                 </div>
             </section>
-
         </main>
     );
 }

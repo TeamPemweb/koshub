@@ -7,16 +7,18 @@ import OnboardingTemplate from "@/components/templates/OnboardingTemplate";
 import { Field, FieldLabel, FieldContent } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 
-export default function TenantOnboarding() {
+export default function PemilikOnboarding() {
     const { update } = useSession();
     const router = useRouter();
 
     const [nama, setNama] = useState("");
     const [nomorTelepon, setNomorTelepon] = useState("");
+    const [namaKos, setNamaKos] = useState("");
+    const [lokasiKos, setLokasiKos] = useState("");
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
 
-    const isValid = nama.trim() && nomorTelepon.trim();
+    const isValid = nama.trim() && nomorTelepon.trim() && namaKos.trim() && lokasiKos.trim();
 
     async function handleSubmit() {
         if (!isValid) return;
@@ -33,6 +35,8 @@ export default function TenantOnboarding() {
                     body: JSON.stringify({
                         nama: nama.trim(),
                         nomor_telepon: nomorTelepon.trim(),
+                        nama_kos: namaKos.trim(),
+                        lokasi_kos: lokasiKos.trim(),
                     }),
                 }
             );
@@ -45,8 +49,8 @@ export default function TenantOnboarding() {
                 return;
             }
 
-            await update({ role: "penghuni", profileComplete: true });
-            router.push("/penghuni");
+            await update({ role: "pemilik", profileComplete: true });
+            router.push("/pemilik");
         } catch {
             setError("Terjadi kesalahan. Coba lagi.");
             setLoading(false);
@@ -56,7 +60,7 @@ export default function TenantOnboarding() {
     return (
         <main>
             <OnboardingTemplate
-                title="Data Diri"
+                title="Data Diri Pemilik"
                 caption="Lengkapi informasi Anda untuk melanjutkan"
                 button={loading ? "Menyimpan..." : "Lanjut"}
                 disabled={!isValid || loading}
@@ -74,6 +78,20 @@ export default function TenantOnboarding() {
                         <FieldLabel htmlFor="nomor_telepon">No. Telepon</FieldLabel>
                         <FieldContent>
                             <Input type="tel" id="nomor_telepon" placeholder="Contoh: 08123456789" value={nomorTelepon} onChange={(e) => setNomorTelepon(e.target.value)} required />
+                        </FieldContent>
+                    </Field>
+
+                    <Field orientation="vertical">
+                        <FieldLabel htmlFor="nama_kos">Nama Kos</FieldLabel>
+                        <FieldContent>
+                            <Input type="text" id="nama_kos" placeholder="Contoh: Kos Singgah Sini" value={namaKos} onChange={(e) => setNamaKos(e.target.value)} required />
+                        </FieldContent>
+                    </Field>
+
+                    <Field orientation="vertical">
+                        <FieldLabel htmlFor="lokasi_kos">Lokasi Kos</FieldLabel>
+                        <FieldContent>
+                            <Input type="text" id="lokasi_kos" placeholder="Contoh: Jl. Sigura-gura No. 10, Malang" value={lokasiKos} onChange={(e) => setLokasiKos(e.target.value)} required />
                         </FieldContent>
                     </Field>
 

@@ -1,18 +1,35 @@
 "use client";
 
 import * as React from "react";
+import { useSession } from "next-auth/react";
 import { User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 
 export function Header({
     title = "Dashboard",
-    userName = "Pemilik Kos",
-    userEmail = "owner@koshub.com",
-    userAvatar,
     className,
     ...props
 }) {
+    const { data: session } = useSession();
+    const [profile, setProfile] = React.useState(null);
+
+    React.useEffect(() => {
+        if (!session) return;
+
+        fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/profile`, {
+            credentials: "include",
+        })
+            .then((res) => res.ok ? res.json() : null)
+            .then((data) => {
+                if (data) setProfile(data);
+            })
+            .catch(() => {});
+    }, [session]);
+
+    const displayName = profile?.nama ?? session?.user?.email ?? "User";
+    const displayEmail = profile?.email ?? session?.user?.email ?? "";
+
     return (
         <header
             className={cn(
@@ -32,23 +49,15 @@ export function Header({
                     <div className="flex items-center gap-3">
                         <div className="hidden flex-col text-right sm:flex">
                             <span className="text-sm font-semibold text-foreground leading-none">
-                                {userName}
+                                {displayName}
                             </span>
                             <span className="text-[10px] text-muted-foreground mt-1 leading-none">
-                                {userEmail}
+                                {displayEmail}
                             </span>
                         </div>
 
                         <div className="relative flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-muted overflow-hidden cursor-pointer hover:opacity-90 transition-opacity">
-                            {userAvatar ? (
-                                <img
-                                    src={userAvatar}
-                                    alt={userName}
-                                    className="h-full w-full object-cover"
-                                />
-                            ) : (
-                                <User className="h-4 w-4 text-muted-foreground" />
-                            )}
+                            <User className="h-4 w-4 text-muted-foreground" />
                         </div>
                     </div>
                 </div>
