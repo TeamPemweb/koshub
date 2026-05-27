@@ -5,6 +5,7 @@ import { useSession } from "next-auth/react";
 import { User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 export function Header({
     title = "Dashboard",
@@ -12,6 +13,7 @@ export function Header({
     ...props
 }) {
     const { data: session } = useSession();
+    const pathname = usePathname();
     const [profile, setProfile] = React.useState(null);
 
     React.useEffect(() => {
@@ -44,7 +46,7 @@ export function Header({
                 </h1>
             </div>
 
-            <Link href="/pemilik/profile">
+            <Link href={pathname.startsWith("/penghuni") ? "/penghuni/profile" : "/pemilik/profile"}>
                 <div className="flex items-center gap-4 cursor-pointer">
                     <div className="flex items-center gap-3">
                         <div className="hidden flex-col text-right sm:flex">
