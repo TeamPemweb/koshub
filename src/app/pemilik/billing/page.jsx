@@ -9,15 +9,15 @@ import { useState, useEffect } from "react";
 import { useDebounce } from "@/hooks/useDebounce";
 import Link from "next/link";
 
-const getTipeKamarStyle = (tipe) => {
-  const styles = {
-    Reguler: "bg-purple-100 text-purple-700 border-purple-200",
-    Premium: "bg-green-100 text-green-700 border-green-200",
-    Deluxe: "bg-yellow-100 text-yellow-700 border-yellow-300",
-    Elite: "bg-pink-100 text-pink-700 border-pink-200",
-    Penthouse: "bg-cyan-100 text-cyan-700 border-cyan-200",
-  };
-  return styles[tipe] || "bg-gray-100 text-gray-700 border-gray-200";
+const getTipeKamarStyle = (tipeRaw) => {
+  if (!tipeRaw) return "bg-gray-100 text-gray-700 border-gray-200";
+  const tipe = tipeRaw.toLowerCase();
+  if (tipe.includes("reguler")) return "bg-purple-100 text-purple-700 border-purple-200";
+  if (tipe.includes("premium")) return "bg-green-100 text-green-700 border-green-200";
+  if (tipe.includes("deluxe")) return "bg-yellow-100 text-yellow-700 border-yellow-300";
+  if (tipe.includes("elite")) return "bg-pink-100 text-pink-700 border-pink-200";
+  if (tipe.includes("penthouse")) return "bg-cyan-100 text-cyan-700 border-cyan-200";
+  return "bg-gray-100 text-gray-700 border-gray-200";
 };
 
 const getStatusStyle = (status) => {
@@ -119,17 +119,27 @@ export default function KelolaBilling() {
   const fetchBillingData = async (query = "", status = "") => {
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
-      const res = await fetch(`${apiUrl}/owner/billings?t=${Date.now()}`, {
-        credentials: "include",
-        cache: "no-store"
-      });
+      const [resBillings, resResidents] = await Promise.all([
+        fetch(`${apiUrl}/owner/billings?t=${Date.now()}`, { credentials: "include", cache: "no-store" }),
+        fetch(`${apiUrl}/owner/residents?t=${Date.now()}`, { credentials: "include", cache: "no-store" })
+      ]);
 
-      if (!res.ok) {
+      if (!resBillings.ok) {
         console.error("Gagal mengambil data billing");
         return;
       }
 
-      const backendData = await res.json();
+      const backendData = await resBillings.json();
+      
+      let residentsMap = {};
+      if (resResidents.ok) {
+        const residentsData = await resResidents.json();
+        residentsData.forEach(r => {
+          if (r.nomor_kamar && r.nama_tipe) {
+            residentsMap[r.nomor_kamar] = r.nama_tipe;
+          }
+        });
+      }
 
       let mappedData = backendData.map(b => {
         // Handle various response structures
@@ -157,13 +167,27 @@ export default function KelolaBilling() {
           "menunggu pembayaran": "Menunggu"
         };
 
+        let siklus = b.siklus_bayar || b.SiklusBayar;
+        if (siklus && !String(siklus).toLowerCase().includes("bulan")) {
+          siklus = `${siklus} Bulan`;
+        } else if (!siklus) {
+          siklus = "-";
+        }
+
+        const nomorKamar = b.nomor_kamar || b.Kamar?.NomorKamar || b.kamar || "-";
+        
+        let tipe = b.nama_tipe || b.Kamar?.TipeKamar?.NamaTipe || residentsMap[nomorKamar] || "-";
+        if (tipe !== "-") {
+          tipe = tipe.split(" ").map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(" ");
+        }
+
         return {
           id: b.billing_id || b.id || b.ID,
           nama: b.nama_penghuni || b.Penghuni?.Nama || b.nama || "-",
-          kamar: b.nomor_kamar || b.Kamar?.NomorKamar || b.kamar || "-",
-          tipe: b.nama_tipe || b.Kamar?.TipeKamar?.NamaTipe || "-",
+          kamar: nomorKamar,
+          tipe: tipe,
           nominal: formattedNominal,
-          siklus: b.siklus_bayar || b.SiklusBayar || "-",
+          siklus: siklus,
           jatuhTempo: formattedDate,
           tanggalBayar: formattedTb,
           status: statusMap[statusRaw.toLowerCase()] || "Menunggu"

@@ -87,10 +87,6 @@ export default function EditProfilePage() {
 
   return (
     <main className="flex flex-col px-10 py-8 w-full max-w-4xl font-sans text-[#1a1a1a]">
-      <div className="flex items-center justify-between mb-10">
-        <h1 className="text-3xl font-bold">Edit Profile</h1>
-      </div>
-
       <button 
         onClick={() => router.back()}
         className="flex items-center gap-2 text-sm font-medium text-[#1a1a1a] hover:text-gray-600 transition-colors mb-8 w-fit"

@@ -36,13 +36,36 @@ export default function KelolaTipeKamar() {
     setIsLoading(true);
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
-      const res = await fetch(`${apiUrl}/owner/room-types?t=${Date.now()}`, {
-        credentials: "include",
-        cache: "no-store"
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setRoomTypes(Array.isArray(data) ? data : (data.data || []));
+      const [resTypes, resResidents] = await Promise.all([
+        fetch(`${apiUrl}/owner/room-types?t=${Date.now()}`, { credentials: "include", cache: "no-store" }),
+        fetch(`${apiUrl}/owner/residents?t=${Date.now()}`, { credentials: "include", cache: "no-store" })
+      ]);
+
+      if (resTypes.ok) {
+        const data = await resTypes.json();
+        const typesData = Array.isArray(data) ? data : (data.data || []);
+        
+        let residentCounts = {};
+        if (resResidents.ok) {
+          const residentsData = await resResidents.json();
+          const rData = Array.isArray(residentsData) ? residentsData : (residentsData.data || []);
+          rData.forEach(r => {
+            const tName = r.nama_tipe || r.Kamar?.TipeKamar?.NamaTipe;
+            if (tName) {
+              residentCounts[tName] = (residentCounts[tName] || 0) + 1;
+            }
+          });
+        }
+
+        const enrichedTypes = typesData.map(type => {
+          const typeName = type.NamaTipe || type.nama_tipe;
+          return {
+            ...type,
+            total_penghuni: residentCounts[typeName] || 0
+          };
+        });
+
+        setRoomTypes(enrichedTypes);
       } else {
         console.error("Gagal mengambil data tipe kamar");
       }
@@ -217,7 +240,7 @@ export default function KelolaTipeKamar() {
                   </div>
                   <div className="flex items-center text-sm font-medium">
                     <User className="w-4 h-4 mr-3 text-gray-600" />
-                    - orang
+                    {type.total_penghuni || 0} orang
                   </div>
                   <div className="flex items-center text-sm font-medium">
                     <Calendar className="w-4 h-4 mr-3 text-gray-600" />
