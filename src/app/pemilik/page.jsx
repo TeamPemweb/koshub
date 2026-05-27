@@ -157,7 +157,7 @@ export default function Dashboard() {
   ];
 
   return (
-    <main className="flex flex-col px-10 py-6 w-full max-w-6xl">
+    <main className="flex flex-col px-10 py-6 w-full">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
         <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex flex-col items-center justify-center gap-2">
           <CircleDollarSign className="w-6 h-6 text-[#1a1a1a] mb-2" strokeWidth={1.5} />

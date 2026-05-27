@@ -103,10 +103,8 @@ export default function KeluhanKos() {
   };
 
   return (
-    <main className="flex flex-col px-10 py-6 w-full max-w-5xl">
+    <main className="flex flex-col px-10 py-6 w-full">
       <div className="mb-8">
-        <h1 className="text-2xl font-semibold text-[#1a1a1a] mb-6">Keluhan Kos</h1>
-        
         <Field orientation="horizontal" className="flex flex-row gap-4 w-full">
           <Input 
             type="search" 

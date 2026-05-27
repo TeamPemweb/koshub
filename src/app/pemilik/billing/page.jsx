@@ -249,7 +249,7 @@ export default function KelolaBilling() {
             placeholder="Cari Nama Penghuni atau Nomor Kamar..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="flex-1 max-w-4xl bg-white"
+            className="flex-1 bg-white"
           />
           <Button variant="default" size="default" onClick={() => fetchBillingData(searchQuery, statusFilter)} className="bg-[#435663] hover:bg-[#3c4d59]">
             Search

@@ -18,17 +18,25 @@ export default function ProfilePage() {
 
   const fetchProfileData = async () => {
     try {
-      const dummyData = {
-        kosName: "Kos Rukita",
-        kosLocation: "Malang, Jawa Timur",
-        ownerName: "Joshua Nathanael Purba",
-        email: "joshuanathanaelpurba123@gmail.com",
-        phone: "08123456789",
-        logoUrl: ""
-      };
-      setProfileData(dummyData);
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/profile`, {
+        credentials: "include"
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        setProfileData({
+          kosName: data.nama_kos || "Nama Kos Belum Diatur",
+          kosLocation: data.lokasi_kos || "Lokasi Belum Diatur",
+          ownerName: data.nama || "Nama Belum Diatur",
+          email: data.email || "",
+          phone: data.nomor_telepon || "Nomor Belum Diatur",
+          logoUrl: ""
+        });
+      } else {
+        console.error("Gagal mengambil data profil");
+      }
     } catch (error) {
-      console.error(error);
+      console.error("Terjadi kesalahan:", error);
     } finally {
       setIsLoading(false);
     }
@@ -44,7 +52,15 @@ export default function ProfilePage() {
 
   const handleLogout = async () => {
     try {
-      router.push("/");
+      // Panggil endpoint logout backend (opsional, jika ada)
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/logout`, {
+        method: "POST",
+        credentials: "include"
+      }).catch(e => console.error(e));
+
+      // Hapus session NextAuth di frontend
+      const { signOut } = await import("next-auth/react");
+      await signOut({ callbackUrl: "/" });
     } catch (error) {
       console.error(error);
     }
