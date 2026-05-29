@@ -171,9 +171,6 @@ export default function KelolaPenghuni() {
       header: "Aksi",
       render: (row) => (
         <div className="flex items-center gap-4">
-          <button className="text-black hover:text-gray-700 transition-colors">
-            <Pencil className="w-4 h-4" />
-          </button>
           <button
             onClick={() => handleAkhiriSewaClick(row)}
             className="px-2.5 py-1 text-xs font-semibold text-red-600 bg-red-100 border border-red-200 rounded-md hover:bg-red-200 transition-colors"
