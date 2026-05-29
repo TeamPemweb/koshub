@@ -1,9 +1,12 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { PlusCircle, MoreVertical, DollarSign, User, Calendar, Edit2, Trash2 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { PlusCircle, MoreVertical, DollarSign, User, Calendar, Edit2, Trash2, ChevronLeft } from "lucide-react";
 
 export default function KelolaTipeKamar() {
+  const router = useRouter();
+
   const [roomTypes, setRoomTypes] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -197,6 +200,14 @@ export default function KelolaTipeKamar() {
 
   return (
     <main className="flex flex-col px-10 py-6 w-full text-[#1a1a1a]">
+      <button 
+        onClick={() => router.back()}
+        className="flex items-center gap-2 text-sm font-medium text-[#1a1a1a] hover:text-gray-600 transition-colors mb-8 w-fit"
+      >
+        <ChevronLeft className="w-5 h-5" />
+        Back
+      </button>
+
       {isLoading ? (
         <div className="text-gray-500">Memuat tipe kamar...</div>
       ) : (
